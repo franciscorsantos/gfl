@@ -1,0 +1,43 @@
+# Arquivos de Bytecode e Cache do Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Extensões C
+*.so
+
+# Arquivos de distribuição e empacotamento
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Pasta de instância do Flask (Contém o banco de dados SQLite e segredos)
+instance/
+
+# Ambientes virtuais
+.venv/
+venv/
+ENV/
+
+# Arquivos de configuração de IDE e editores
+.vscode/
+.idea/
+
+# Arquivos de backup e logs gerados pela aplicação
+backups/
+backup_log.txt
+.env
