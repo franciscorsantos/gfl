@@ -1,0 +1,28 @@
+<thead>
+    <tr>
+        <th>Centro de Custo</th>
+        <th style="text-align: right;">Total Entradas</th>
+        <th style="text-align: right;">Total Saídas</th>
+        <th style="text-align: right;">Resultado</th>
+    </tr>
+</thead>
+<tbody>
+    {% for r in resultados %}
+    <tr>
+        <td>{{ r.nome or "Não Alocado" }}</td>
+        <td style="text-align: right;" class="text-success">R$ {{ "%.2f"|format(r.entradas) }}</td>
+        <td style="text-align: right;" class="text-danger">R$ {{ "%.2f"|format(r.saidas) }}</td>
+        <td style="text-align: right; font-weight: 500;">R$ {{ "%.2f"|format(r.entradas - r.saidas) }}</td>
+    </tr>
+    {% else %}
+    <tr class="table-empty-state"><td colspan="4">Nenhum dado encontrado para os filtros aplicados.</td></tr>
+    {% endfor %}
+</tbody>
+<tfoot>
+    <tr>
+        <td>TOTAIS DO PERÍODO</td>
+        <td style="text-align: right;" class="text-success">R$ {{ "%.2f"|format(total_entradas) }}</td>
+        <td style="text-align: right;" class="text-danger">R$ {{ "%.2f"|format(total_saidas) }}</td>
+        <td style="text-align: right;">R$ {{ "%.2f"|format(resultado_periodo) }}</td>
+    </tr>
+</tfoot>

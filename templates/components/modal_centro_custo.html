@@ -1,0 +1,29 @@
+<div id="modalNovoCentro" class="modal-overlay">
+    <div class="modal-content">
+        <form id="formNovoCentro">
+            <input type="hidden" id="centro_custo_id_edit">
+            <div class="modal-header">
+                <h3>Centro de Custo</h3>
+                <button type="button" class="close-btn" onclick="fecharModal('modalNovoCentro')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group-full">
+                    <label for="nome_centro">Nome / Identificação</label>
+                    <input type="text" id="nome_centro" name="nome" required placeholder="Ex: Caminhão Placa ABC-1234">
+                </div>
+                <div class="form-group-full">
+                    <label for="tipo_centro">Tipo de Alocação</label>
+                    <select id="tipo_centro" name="tipo" required>
+                        <option value="Veículo">Veículo</option>
+                        <option value="Rota">Rota</option>
+                        <option value="Geral/Administrativo">Geral/Administrativo</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="fecharModal('modalNovoCentro')">Cancelar</button>
+                <button type="submit" class="btn-primary">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>

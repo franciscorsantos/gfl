@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard-header" style="background-color: var(--cor-fundo-card); border: 1px solid var(--cor-borda);">
+    <div class="page-subheader">
+        <h2>Log de Auditoria do Sistema</h2>
+        <p style="color: var(--cor-texto-suave);">Linha do tempo de todas as ações sensíveis realizadas no sistema.</p>
+    </div>
+</div>
+
+<!-- Formulário de Filtro -->
+<form method="get" action="{{ url_for('logs') }}" class="filter-form">
+    <div class="form-row">
+        <div class="form-group">
+            <label for="usuario_id">Usuário</label>
+            <select id="usuario_id" name="usuario_id">
+                <option value="">Todos os Usuários</option>
+                {% for u in usuarios %}
+                    <option value="{{ u.id }}" {% if request.args.get('usuario_id') == u.id|string %}selected{% endif %}>
+                        {{ u.nome }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="modulo">Módulo</label>
+            <select id="modulo" name="modulo">
+                <option value="">Todos os Módulos</option>
+                {% for m in modulos %}
+                    <option value="{{ m }}" {% if request.args.get('modulo') == m %}selected{% endif %}>
+                        {{ m }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="data_inicio">Data Início</label>
+            <input type="date" id="data_inicio" name="data_inicio" value="{{ request.args.get('data_inicio', '') }}">
+        </div>
+        <div class="form-group">
+            <label for="data_fim">Data Fim</label>
+            <input type="date" id="data_fim" name="data_fim" value="{{ request.args.get('data_fim', '') }}">
+        </div>
+        <div class="form-group" style="display: flex; align-items: flex-end; gap: 8px;">
+            <button type="submit" class="btn-primary">Filtrar</button>
+            <button type="button" onclick="window.location.href='{{ url_for('logs') }}'" class="btn-secondary">Limpar</button>
+        </div>
+    </div>
+</form>
+
+<style>
+    .filter-form { background-color: var(--cor-fundo-card); padding: 20px; border-radius: 12px; margin-bottom: 24px; border: 1px solid var(--cor-borda); }
+    .log-acao { font-weight: 700; padding: 4px 8px; border-radius: 6px; color: white; font-size: 11px; text-transform: uppercase; display: inline-block; }
+    .log-criar { background-color: var(--cor-sucesso); }
+    .log-editar { background-color: var(--cor-alerta); }
+    .log-excluir { background-color: var(--cor-perigo); }
+    .log-pagar { background-color: var(--cor-primaria); }
+    .log-login { background-color: var(--cor-texto-suave); }
+</style>
+
+<div style="background-color: var(--cor-fundo-card); border-radius: 12px; border: 1px solid var(--cor-borda); overflow: hidden; box-shadow: var(--sombra-card);">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width: 160px;">Data/Hora</th>
+                <th style="width: 180px;">Usuário</th>
+                <th style="width: 100px;" class="cell-center">Ação</th>
+                <th style="width: 180px;">Módulo</th>
+                <th>Detalhes</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td style="font-size: 13px; color: var(--cor-texto-suave);">{{ log.data_hora.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                <td style="font-weight: 500;">{{ log.usuario.nome }}</td>
+                <td class="cell-center">
+                    {% set acao_lower = log.acao|lower %}
+                    <span class="log-acao {% if 'criar' in acao_lower %}log-criar{% elif 'editar' in acao_lower %}log-editar{% elif 'excluir' in acao_lower %}log-excluir{% elif 'pagar' in acao_lower %}log-pagar{% elif 'login' in acao_lower %}log-login{% endif %}">{{ log.acao }}</span>
+                </td>
+                <td>{{ log.modulo }}</td>
+                <td style="font-size: 14px;">{{ log.detalhes }}</td>
+            </tr>
+            {% else %}
+            <tr class="table-empty-state">
+                <td colspan="5">Nenhum registro de log encontrado para os filtros aplicados.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,51 @@
+<!-- Modal para Cadastro/Edição de Usuário -->
+<div id="modalNovoUsuario" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="tituloModalUsuario">Novo Usuário</h3>
+            <button class="close-btn" onclick="fecharModal('modalNovoUsuario')">&times;</button>
+        </div>
+        <form id="formNovoUsuario">
+            <div class="modal-body">
+                <input type="hidden" id="usuario_id_edit" name="usuario_id">
+
+                <div class="form-group-full">
+                    <label for="usuario_nome">Nome Completo</label>
+                    <input type="text" id="usuario_nome" name="nome" required>
+                </div>
+
+                <div class="form-group-full">
+                    <label for="usuario_email">E-mail</label>
+                    <input type="email" id="usuario_email" name="email" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="usuario_perfil">Perfil de Acesso</label>
+                        <select id="usuario_perfil" name="perfil" required>
+                            <option value="Operador">Operador</option>
+                            <option value="Admin">Administrador</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="usuario_status">Status</label>
+                        <select id="usuario_status" name="status" required>
+                            <option value="Ativo">Ativo</option>
+                            <option value="Inativo">Inativo</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group-full">
+                    <label for="usuario_senha">Senha</label>
+                    <input type="password" id="usuario_senha" name="senha">
+                    <small style="color: var(--cor-texto-suave); font-size: 12px;">Deixe em branco para não alterar a senha ao editar.</small>
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 20px 24px; border-top: 1px solid var(--cor-borda);">
+                <button type="button" class="btn-secondary" onclick="fecharModal('modalNovoUsuario')">Cancelar</button>
+                <button type="submit" class="btn-primary">Salvar Usuário</button>
+            </div>
+        </form>
+    </div>
+</div>

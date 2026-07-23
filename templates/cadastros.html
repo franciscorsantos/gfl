@@ -1,0 +1,273 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard-header" style="background-color: var(--cor-fundo-card); border: 1px solid var(--cor-borda);">
+<div class="page-subheader">
+    <h2>Cadastros Auxiliares</h2>
+    <p style="color: var(--cor-texto-suave);">Gerencie as contas, categorias, formas de pagamento e frota.</p>
+</div>
+
+<!-- Navegação das Abas -->
+<div class="tabs-nav">
+    <!-- O onclick chama a nossa função JavaScript passando o ID da aba e o próprio botão (this) -->
+    <button class="tab-btn active" onclick="abrirAba(event, 'aba-portadores')">Portadores (Contas)</button>
+    <button class="tab-btn" onclick="abrirAba(event, 'aba-planos')">Plano de Contas</button>
+    <button class="tab-btn" onclick="abrirAba(event, 'aba-formas')">Formas de Pagamento</button>
+    <button class="tab-btn" onclick="abrirAba(event, 'aba-centros')">Centros de Custo</button>
+    <button class="tab-btn" onclick="abrirAba(event, 'aba-fornecedores')">Fornecedores</button>
+</div>
+</div>
+
+<!-- Conteúdo: Aba de Portadores -->
+<div id="aba-portadores" class="tab-content active">
+    <div class="content-header">
+        <h3>Gestão de Portadores</h3>
+        {% if current_user.perfil == 'Admin' %}
+        <button class="btn-primary" onclick="abrirModal('modalNovoPortador')">+ Novo Portador</button>
+        {% endif %}
+    </div>
+    <div class="table-responsive">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Nome do Portador</th>
+                <th>Tipo</th>
+                <th>Saldo Inicial</th>
+                {% if current_user.perfil == 'Admin' %}
+                <th class="cell-center" style="width: 100px;">Ações</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in portadores %}
+            <tr>
+                <td>{{ p.nome }}</td>
+                <td>{{ p.tipo }}</td>
+                <td>R$ {{ "%.2f"|format(p.saldo_inicial) }}</td>
+                {% if current_user.perfil == 'Admin' %}
+                <td class="cell-center">
+                    <button class="action-icon" onclick="prepararEdicaoPortador({{ p.id }})" title="Editar"><span class="material-symbols-outlined" style="font-size: 18px;">edit</span></button>
+                    <button class="action-icon btn-deletar-portador" data-id="{{ p.id }}" title="Excluir"><span class="material-symbols-outlined" style="font-size: 18px; color: var(--cor-perigo);">delete</span></button>
+                </td>
+                {% endif %}
+            </tr>
+            {% else %}
+            <tr class="table-empty-state"><td colspan="{{ 4 if current_user.perfil == 'Admin' else 3 }}">Nenhum portador cadastrado.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+
+<!-- Conteúdo: Aba de Plano de Contas -->
+<div id="aba-planos" class="tab-content" style="display: none;">
+    <div class="content-header">
+        <h3>Plano de Contas Contábil</h3>
+        {% if current_user.perfil == 'Admin' %}
+        <button class="btn-primary" onclick="abrirModal('modalNovoPlano')">+ Nova Conta</button>
+        {% endif %}
+    </div>
+    
+    <!-- Bloco de estilo rápido para limpar os erros do VS Code -->
+    <style>
+        .linha-destaque { background-color: var(--cor-secundaria); font-weight: bold; }
+        .cor-despesa { color: var(--cor-perigo); }
+        .cor-receita { color: var(--cor-sucesso); }
+    </style>
+    <div class="table-responsive">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Código</th>
+                <th>Descrição</th>
+                <th class="cell-center">Tipo</th>
+                {% if current_user.perfil == 'Admin' %}
+                <th class="cell-center">Ações</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in planos %}
+            <!-- Calcula a indentação em pixels -->
+            {% set nivel = p.codigo.count('.') %}
+            {% set espacamento = (nivel * 20) + 12 %}
+            
+            <!-- CORREÇÃO 1: Uso de class ao invés de style para a cor de fundo do Jinja -->
+            <tr class="{% if nivel == 0 %}linha-destaque{% endif %}" style="border-bottom: 1px solid var(--cor-borda);">
+                <td style="font-family: monospace;">{{ p.codigo }}</td>
+                
+                <!-- CORREÇÃO 2: Uso de variável CSS (--pad) para injetar o valor dinâmico em px -->
+                <td style="--pad: {{ espacamento }}px; padding: 10px 12px 10px var(--pad);">
+                    {{ p.nome }}
+                </td>
+                
+                <td class="cell-center">
+                    <!-- CORREÇÃO 3: Uso de class para definir a cor do texto -->
+                    <span style="font-size: 11px;" class="{% if p.tipo == 'Despesa' %}cor-despesa{% else %}cor-receita{% endif %}">
+                        {{ p.tipo }}
+                    </span>
+                </td>
+                {% if current_user.perfil == 'Admin' %}
+                <td class="cell-center">
+                    <button class="action-icon" onclick="prepararEdicaoPlanoConta({{ p.id }})" title="Editar">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
+                    </button>
+                    <button class="action-icon btn-deletar-plano-conta" data-id="{{ p.id }}" title="Excluir"><span class="material-symbols-outlined" style="font-size: 18px; color: var(--cor-perigo);">delete</span></button>
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+
+<!-- Conteúdo: Aba de Formas de Pagamento -->
+<div id="aba-formas" class="tab-content" style="display: none;">
+    <div class="content-header">
+        <h3>Formas de Pagamento</h3>
+        {% if current_user.perfil == 'Admin' %}
+        <button class="btn-primary" onclick="abrirModal('modalNovaForma')">+ Nova Forma</button>
+        {% endif %}
+    </div>
+    <div class="table-responsive">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Descrição da Forma de Pagamento</th>
+                <th class="cell-center" style="width: 100px;">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for f in formas %}
+            <tr>
+                <td style="font-weight: 500;">
+                    <span class="material-symbols-outlined icon-cell">payments</span>
+                    {{ f.nome }}
+                </td>
+                {% if current_user.perfil == 'Admin' %}
+                <td class="cell-center">
+                    <button class="action-icon" onclick="prepararEdicaoFormaPagamento({{ f.id }})" title="Editar">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
+                    </button>
+                    <button class="action-icon btn-deletar-forma-pagamento" data-id="{{ f.id }}" title="Excluir"><span class="material-symbols-outlined" style="font-size: 18px; color: var(--cor-perigo);">delete</span></button>
+                </td>
+                {% endif %}
+            </tr>
+            {% else %}
+            <tr class="table-empty-state">
+                <td colspan="{{ 2 if current_user.perfil == 'Admin' else 1 }}">Nenhuma forma de pagamento cadastrada.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+
+<!-- Conteúdo: Aba de Centros de Custo -->
+<div id="aba-centros" class="tab-content" style="display: none;">
+    <div class="content-header">
+        <h3>Centros de Custo (Frota e Rotas)</h3>
+        {% if current_user.perfil == 'Admin' %}
+        <button class="btn-primary" onclick="abrirModal('modalNovoCentro')">+ Novo Centro</button>
+        {% endif %}
+    </div>
+    <div class="table-responsive">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Identificação / Nome</th>
+                <th>Tipo de Alocação</th>
+                {% if current_user.perfil == 'Admin' %}
+                <th class="cell-center" style="width: 100px;">Ações</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in centros %}
+            <tr>
+                <td style="font-weight: 500;">
+                    <!-- Lógica Jinja2 para mudar o ícone dinamicamente -->
+                    <span class="material-symbols-outlined icon-cell">
+                        {% if c.tipo == 'Veículo' %}local_shipping
+                        {% elif c.tipo == 'Rota' %}route
+                        {% else %}domain
+                        {% endif %}
+                    </span>
+                    {{ c.nome }}
+                </td>
+                <td>
+                    <span class="badge" style="background-color: transparent; border: 1px solid var(--cor-borda); color: var(--cor-texto-suave);">
+                        {{ c.tipo }}
+                    </span>
+                </td>
+                {% if current_user.perfil == 'Admin' %}
+                <td class="cell-center">
+                    <button class="action-icon" onclick="prepararEdicaoCentroCusto({{ c.id }})" title="Editar">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
+                    </button>
+                    <button class="action-icon btn-deletar-centro-custo" data-id="{{ c.id }}" title="Excluir"><span class="material-symbols-outlined" style="font-size: 18px; color: var(--cor-perigo);">delete</span></button>
+                </td>
+                {% endif %}
+            </tr>
+            {% else %}
+            <tr class="table-empty-state"><td colspan="{{ 3 if current_user.perfil == 'Admin' else 2 }}">Nenhum centro de custo cadastrado.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+
+<!-- Conteúdo: Aba de Fornecedores -->
+<div id="aba-fornecedores" class="tab-content" style="display: none;">
+    <div class="content-header">
+        <h3>Gestão de Fornecedores</h3>
+        {% if current_user.perfil == 'Admin' %}
+        <button class="btn-primary" onclick="abrirModal('modalNovoFornecedor')">+ Novo Fornecedor</button>
+        {% endif %}
+    </div>
+    <div class="table-responsive">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Nome / Razão Social</th>
+                <th>CNPJ / CPF</th>
+                <th class="cell-center">Status</th>
+                {% if current_user.perfil == 'Admin' %}
+                <th class="cell-center" style="width: 100px;">Ações</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for f in fornecedores %}
+            <tr>
+                <td>{{ f.nome }}</td>
+                <td>{{ f.cnpj_cpf }}</td>
+                <td class="cell-center">
+                    <span class="badge" style="background-color: {{ 'var(--cor-sucesso)' if f.status == 'Ativo' else 'var(--cor-texto-suave)' }}; color: white;">
+                        {{ f.status }}
+                    </span>
+                </td>
+                {% if current_user.perfil == 'Admin' %}
+                <td class="cell-center">
+                    <button class="action-icon" onclick="prepararEdicaoFornecedor({{ f.id }})" title="Editar"><span class="material-symbols-outlined" style="font-size: 18px;">edit</span></button>
+                    <button class="action-icon btn-deletar-fornecedor" data-id="{{ f.id }}" title="Excluir"><span class="material-symbols-outlined" style="font-size: 18px; color: var(--cor-perigo);">delete</span></button>
+                </td>
+                {% endif %}
+            </tr>
+            {% else %}
+            <tr class="table-empty-state"><td colspan="{{ 4 if current_user.perfil == 'Admin' else 3 }}">Nenhum fornecedor cadastrado.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+
+<!-- Inclusão de TODOS os Modais no final do arquivo (antes do endblock) -->
+{% include 'components/modal_portador.html' %}
+{% include 'components/modal_plano_conta.html' %}
+{% include 'components/modal_centro_custo.html' %}
+{% include 'components/modal_forma_pagamento.html' %}
+{% include 'components/modal_fornecedor.html' %}
+
+{% endblock %}

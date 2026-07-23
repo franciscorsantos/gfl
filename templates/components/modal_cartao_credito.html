@@ -1,0 +1,43 @@
+<div id="modalNovoCartao" class="modal-overlay">
+    <div class="modal-content">
+        <form id="formNovoCartao">
+            <div class="modal-header">
+                <h3>Novo Cartão de Crédito</h3>
+                <button type="button" class="close-btn" onclick="fecharModal('modalNovoCartao')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group-full">
+                    <label for="nome_cartao">Nome do Cartão</label>
+                    <input type="text" id="nome_cartao" name="nome" required placeholder="Ex: Nubank, Inter, Sicredi">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="limite_cartao">Limite Total (R$)</label>
+                        <input type="text" id="limite_cartao" name="limite" required class="input-moeda">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="dia_fechamento_cartao">Dia do Fechamento</label>
+                        <input type="number" id="dia_fechamento_cartao" name="dia_fechamento" min="1" max="31" required placeholder="Ex: 25">
+                    </div>
+                    <div class="form-group">
+                        <label for="dia_vencimento_cartao">Dia do Vencimento</label>
+                        <input type="number" id="dia_vencimento_cartao" name="dia_vencimento" min="1" max="31" required placeholder="Ex: 05">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="fecharModal('modalNovoCartao')">Cancelar</button>
+                <button type="submit" class="btn-primary">Salvar Cartão</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Adiciona a máscara de moeda ao campo de limite assim que o DOM carregar
+    document.addEventListener('DOMContentLoaded', function() {
+        inicializarMascaraMoeda(document.getElementById('limite_cartao'));
+    });
+</script>

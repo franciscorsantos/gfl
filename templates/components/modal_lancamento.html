@@ -1,0 +1,99 @@
+<!-- templates/components/modal_lancamento.html -->
+<div id="modalNovoLancamento" class="modal-overlay">
+    <!-- CAIXA BRANCA COMEÇA AQUI -->
+    <div class="modal-content"> 
+        
+        <div class="modal-header">
+            <h3 id="tituloModalLancamento">Novo Lançamento</h3>
+            <button type="button" class="close-btn" onclick="fecharModal('modalNovoLancamento')">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        
+        <!-- O Formulário inteiro fica dentro da caixa branca -->
+        <form id="formNovoLancamento" class="modal-body">
+            <input type="hidden" id="lancamento_id" name="lancamento_id" value="">
+            
+            <div class="form-row">
+                <div class="form-group" style="flex-direction: row; align-items: center; gap: 16px;">
+                    <label><input type="radio" name="tipo_operacao" value="Despesa" checked> Despesa (Saída)</label>
+                    <label><input type="radio" name="tipo_operacao" value="Receita"> Receita (Entrada)</label>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="valor">Valor (R$)</label>
+                    <input type="text" id="valor" name="valor" class="input-moeda" placeholder="0,00" required>
+                </div>
+                <div class="form-group">
+                    <label for="data_lancamento">Data do Lançamento</label>
+                    <input type="date" id="data_lancamento" name="data_lancamento" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="portador_id">Portador (Conta/Caixa)</label>
+                    <select id="portador_id" name="portador_id" required>
+                        <option value="">Selecione de onde sai/entra...</option>
+                        {% for p in opcoes_portadores %}
+                        <option value="{{ p.id }}">{{ p.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="forma_pagto_id">Forma de Pagamento</label>
+                    <select id="forma_pagto_id" name="forma_pagto_id" required>
+                        <option value="">Como foi pago?</option>
+                        {% for f in opcoes_formas %}
+                        <option value="{{ f.id }}">{{ f.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group-full">
+                <label for="plano_conta_id">Plano de Contas (Categoria)</label>
+                <select id="plano_conta_id" name="plano_conta_id" required>
+                    <option value="">Selecione a categoria...</option>
+                    {% for pc in opcoes_planos %}
+                    <option value="{{ pc.id }}">{{ pc.codigo }} - {{ pc.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group-full">
+                <label for="centro_custo_id">Centro de Custo (Frota)</label>
+                <select id="centro_custo_id" name="centro_custo_id">
+                    <option value="">Geral / Administrativo (Nenhum)</option>
+                    {% for c in opcoes_centros %}
+                    <option value="{{ c.id }}">{{ c.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Status do Lançamento</label>
+                    <div style="display: flex; gap: 16px; margin-top: 8px;">
+                        <label><input type="radio" name="status" value="Previsto" checked> Previsto</label>
+                        <label><input type="radio" name="status" value="Realizado"> Realizado</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group-full">
+                <label for="descricao">Descrição / Detalhes</label>
+                <input type="text" id="descricao" name="descricao" placeholder="Ex: Abastecimento caminhão Volvo SP" required>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="fecharModal('modalNovoLancamento')">Cancelar</button>
+                <button type="submit" class="btn-primary">Salvar Lançamento</button>
+            </div>
+        </form>
+    
+    <!-- CAIXA BRANCA TERMINA AQUI, depois de englobar o form inteiro -->
+    </div> 
+</div>

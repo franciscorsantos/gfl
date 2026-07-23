@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard-header" style="justify-content: space-between; align-items: center; background-color: var(--cor-fundo-card); border: 1px solid var(--cor-borda); margin-bottom: 24px;">
+    <div>
+        <h2>Lançamentos e Fluxo de Caixa</h2>
+        <p style="color: var(--cor-texto-suave);">Histórico completo de todas as receitas e despesas da operação.</p>
+    </div>
+    <button class="btn-primary" onclick="abrirModal('modalNovoLancamento')">
+        + Novo Lançamento
+    </button>
+</div>
+
+<!-- Formulário de Filtro -->
+<form method="get" action="{{ url_for('lancamentos') }}" class="filter-form">
+    <div class="form-row">
+        <div class="form-group">
+            <label for="data_inicio">Data Início</label>
+            <!-- O valor é preenchido com o que veio da URL, para manter o filtro ativo -->
+            <input type="date" id="data_inicio" name="data_inicio" value="{{ request.args.get('data_inicio', '') }}">
+        </div>
+        <div class="form-group">
+            <label for="data_fim">Data Fim</label>
+            <input type="date" id="data_fim" name="data_fim" value="{{ request.args.get('data_fim', '') }}">
+        </div>
+        <div class="form-group">
+            <label for="portador_id">Conta Bancária</label>
+            <select id="portador_id" name="portador_id">
+                <option value="">Todas as Contas</option>
+                {% for portador in opcoes_portadores %}
+                    <option value="{{ portador.id }}" {% if request.args.get('portador_id') == portador.id|string %}selected{% endif %}>
+                        {{ portador.nome }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group" style="display: flex; align-items: flex-end; gap: 8px;">
+            <button type="submit" class="btn-primary">Filtrar</button>
+            <!-- Botão para limpar os filtros e recarregar a página -->
+            <button type="button" onclick="window.location.href='{{ url_for('lancamentos') }}'" class="btn-secondary">Limpar</button>
+        </div>
+    </div>
+</form>
+
+<style>
+    .filter-form {
+        background-color: var(--cor-fundo-card);
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 24px;
+    }
+</style>
+
+<!-- Tabela Completa de Lançamentos -->
+<div style="background-color: var(--cor-fundo-card); border-radius: 12px; border: 1px solid var(--cor-borda); overflow: hidden; box-shadow: var(--sombra-card);">
+    <div class="table-responsive">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Descrição / Categoria</th>
+                <th>Centro de Custo</th>
+                <th>Conta / Pagamento</th>
+                <th class="cell-center">Status</th>
+                <th>Valor</th>
+                {% if current_user.perfil == 'Admin' %}
+                <th class="cell-center">Ações</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in transacoes %}
+            <tr>
+                <!-- Data -->
+                <td style="color: var(--cor-texto-suave);">
+                    {{ t.data_vencimento.strftime('%d/%m/%Y') }}
+                </td>
+                
+                <!-- Descrição e Categoria -->
+                <td style="font-weight: 500;">
+                    {{ t.descricao }} <br>
+                    <span style="font-size: 12px; color: var(--cor-texto-suave); font-weight: normal;">
+                        {{ t.categoria.codigo if t.categoria }} - {{ t.categoria.nome if t.categoria else 'Sem Categoria' }}
+                    </span>
+                </td>
+
+                <!-- Centro de Custo (Frota) -->
+                <td>
+                    <span class="badge" style="background-color: transparent; border: 1px solid var(--cor-borda); color: var(--cor-texto-suave);">
+                        {{ t.centro_custo.nome if t.centro_custo else 'Administrativo Geral' }}
+                    </span>
+                </td>
+
+                <!-- Portador e Forma de Pagamento -->
+                <td>
+                    <div style="font-size: 13px;">
+                        <strong>Conta:</strong> {{ t.portador.nome if t.portador else 'N/D' }}<br>
+                        <span style="color: var(--cor-texto-suave);"><strong>Via:</strong> {{ t.forma_pagamento.nome if t.forma_pagamento else 'N/D' }}</span>
+                    </div>
+                </td>
+                
+                <!-- Status (Clicável) -->
+                <td class="cell-center">
+                    {% if t.status == 'Previsto' %}
+                        <span
+                            class="status-toggle status-previsto"
+                            data-id="{{ t.id }}"
+                            data-status-atual="{{ t.status }}"
+                            title="Clique para alterar o status para Realizado"
+                        >
+                            {{ t.status }}
+                        </span>
+                    {% else %}
+                        <span class="status-realizado-final" title="Lançamento já realizado">{{ t.status }}</span>
+                    {% endif %}
+                </td>
+                
+                <!-- Valor -->
+                <td style="font-weight: 600;" class="{% if t.tipo == 'Despesa' %}cor-despesa{% else %}cor-receita{% endif %}">
+                    {% if t.tipo == 'Despesa' %}-{% else %}+{% endif %} R$ {{ "%.2f"|format(t.valor) }}
+                </td>
+
+                {% if current_user.perfil == 'Admin' %}
+                <td class="cell-center">
+                    <button class="action-icon btn-editar-lancamento" data-id="{{ t.id }}" title="Editar Lançamento">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
+                    </button>
+                    <button class="action-icon btn-deletar-lancamento" data-id="{{ t.id }}" title="Excluir Lançamento">
+                        <span class="material-symbols-outlined" style="font-size: 18px; color: var(--cor-perigo);">delete</span>
+                    </button>
+                </td>
+                {% endif %}
+            </tr>
+            {% else %}
+            <tr class="table-empty-state">
+                <td colspan="{{ 7 if current_user.perfil == 'Admin' else 6 }}">Nenhum lançamento encontrado no histórico.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+
+<style>
+    .cor-despesa { color: var(--cor-perigo); }
+    .cor-receita { color: var(--cor-sucesso); }
+
+    .status-toggle {
+        cursor: pointer;
+        text-transform: uppercase;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 5px 10px;
+        border-radius: 12px;
+        color: white;
+        transition: all 0.2s ease;
+    }
+    .status-previsto { background-color: var(--cor-alerta); }
+    .status-realizado { background-color: var(--cor-sucesso); }
+
+    .status-realizado-final {
+        text-transform: uppercase;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 5px 10px;
+        border-radius: 12px;
+        color: white;
+        background-color: var(--cor-sucesso);
+        cursor: not-allowed;
+        opacity: 0.85;
+    }
+</style>
+
+<!-- Inclusão do Modal -->
+{% include 'components/modal_lancamento.html' %}
+{% endblock %}

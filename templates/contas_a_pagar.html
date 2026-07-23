@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard-header" style="background-color: var(--cor-fundo-card); border: 1px solid var(--cor-borda); margin-bottom: 24px;">
+    <div class="page-subheader">
+        <h2>Nova Conta a Pagar</h2>
+        <p style="color: var(--cor-texto-suave);">Registre despesas com fornecedores, notas fiscais e suas condições de pagamento.</p>
+    </div>
+</div>
+
+<form id="formNovaContaPagar" class="form-container" style="max-width: 900px; margin: auto;">
+    
+    <!-- ================================================== -->
+    <!-- SESSÃO A: DADOS DA NOTA (FIXOS)                    -->
+    <!-- ================================================== -->
+    <div class="form-section" style="margin-bottom: 32px;">
+        <h4 class="section-title">1. Dados da Nota Fiscal / Documento</h4>
+        
+        <div class="form-row">
+            <div class="form-group" style="flex: 3;">
+                <label for="conta_fornecedor_id">Fornecedor</label>
+                <select id="conta_fornecedor_id" name="fornecedor_id" required>
+                    <option value="">Selecione o fornecedor...</option>
+                    {% for f in opcoes_fornecedores %}
+                    <option value="{{ f.id }}">{{ f.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group" style="flex: 2;">
+                <label for="conta_plano_conta_id">Categoria da Despesa</label>
+                <select id="conta_plano_conta_id" name="plano_conta_id" required>
+                    <option value="">Selecione a categoria...</option>
+                    {% for p in opcoes_planos %}{% if p.tipo == 'Despesa' and '.' in p.codigo %}
+                    <option value="{{ p.id }}">{{ p.codigo }} - {{ p.nome }}</option>
+                    {% endif %}{% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group-full">
+            <label for="conta_descricao">Descrição da Compra/Serviço</label>
+            <input type="text" id="conta_descricao" name="descricao" required placeholder="Ex: Compra de 4 pneus, Manutenção Preventiva Scania">
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="conta_tipo_documento">Tipo de Documento</label>
+                <select id="conta_tipo_documento" name="tipo_documento">
+                    <option value="NFe">NFe (Nota Fiscal Eletrônica)</option>
+                    <option value="CTe">CTe (Conhecimento de Transporte)</option>
+                    <option value="Fatura">Fatura</option>
+                    <option value="Recibo">Recibo</option>
+                    <option value="Outro">Outro</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="conta_numero_documento">Número do Documento</label>
+                <input type="text" id="conta_numero_documento" name="numero_documento" placeholder="Opcional">
+            </div>
+            <div class="form-group">
+                <label for="conta_data_emissao">Data de Emissão</label>
+                <input type="date" id="conta_data_emissao" name="data_emissao" required>
+            </div>
+        </div>
+
+        <div class="form-group" style="max-width: 250px; margin-top: 16px;">
+            <label for="conta_valor_total">Valor Total da Nota (R$)</label>
+            <input type="text" id="conta_valor_total" name="valor_total" required class="input-moeda" placeholder="0,00">
+        </div>
+    </div>
+
+    <!-- ================================================== -->
+    <!-- SESSÃO B: CONDIÇÕES DE PAGAMENTO (DINÂMICA)        -->
+    <!-- ================================================== -->
+    <div class="form-section">
+        <h4 class="section-title">2. Condições de Pagamento</h4>
+
+        <div class="form-group" style="max-width: 350px;">
+            <label for="condicao_pagamento">Tipo de Pagamento</label>
+            <select id="condicao_pagamento">
+                <option value="vista">À Vista</option>
+                <option value="fixo">Parcelado (Intervalo Fixo)</option>
+                <option value="dinamico">Parcelado (Dinâmico/Variável)</option>
+            </select>
+        </div>
+
+        <!-- Container para os campos dinâmicos -->
+        <div id="campos_pagamento_container" style="margin-top: 24px;">
+            <!-- O conteúdo aqui será gerado pelo JavaScript -->
+        </div>
+    </div>
+
+    <div class="modal-footer" style="padding: 0; margin-top: 32px; border-top: 1px solid var(--cor-borda); padding-top: 24px;">
+        <button type="submit" class="btn-primary">Salvar Conta a Pagar</button>
+    </div>
+</form>
+
+<style>
+    .section-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--cor-primaria);
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--cor-borda);
+        margin-bottom: 24px;
+    }
+    .parcela-preview-table {
+        width: 100%;
+        margin-top: 16px;
+    }
+    .parcela-preview-table td, .parcela-preview-table th {
+        padding: 10px;
+        border: 1px solid var(--cor-borda);
+    }
+    .total-parcelas-footer {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 16px;
+        margin-top: 16px;
+        padding: 16px;
+        background-color: var(--cor-secundaria);
+        border-radius: 8px;
+    }
+    .total-ok { color: var(--cor-sucesso); }
+    .total-erro { color: var(--cor-perigo); }
+</style>
+
+{% endblock %}

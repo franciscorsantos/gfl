@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard-header" style="background-color: var(--cor-fundo-card); border: 1px solid var(--cor-borda);">
+    <div class="page-subheader">
+        <h2>Gestão de Cartões de Crédito</h2>
+        <p style="color: var(--cor-texto-suave);">Controle suas faturas, despesas e limites em um só lugar.</p>
+    </div>
+
+    <!-- Navegação das Abas -->
+    <div class="tabs-nav">
+        <button class="tab-btn active" onclick="abrirAba(event, 'aba-resumo')">Resumo dos Cartões</button>
+        <button class="tab-btn" onclick="abrirAba(event, 'aba-lancar')">Lançar Despesa</button>
+        <button class="tab-btn" onclick="abrirAba(event, 'aba-extrato')">Extrato de Faturas</button>
+    </div>
+</div>
+
+<!-- GUIA 1: RESUMO E GESTÃO -->
+<div id="aba-resumo" class="tab-content active">
+    <div class="content-header">
+        <h3>Visão Geral</h3>
+        <button class="btn-primary" onclick="abrirModal('modalNovoCartao')">+ Novo Cartão</button>
+    </div>
+
+    <div class="credit-card-grid">
+        {% for item in cartoes_info %}
+            <div class="credit-card">
+                <div class="card-header">
+                    <span class="card-name">{{ item.cartao.nome }}</span>
+                    <span class="material-symbols-outlined card-chip">memory</span>
+                </div>
+                <div class="card-body">
+                    <span class="card-label">Fatura Atual ({{ item.mes_fatura_atual }}/{{ item.ano_fatura_atual }})</span>
+                    <span class="card-main-value">R$ {{ "%.2f"|format(item.total_fatura_atual) }}</span>
+                </div>
+                <div class="card-footer">
+                    <div class="limit-info">
+                        <span class="card-label">Limite Disponível</span>
+                        <span class="limit-value">R$ {{ "%.2f"|format(item.limite_disponivel) }}</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: {{ item.percentual_uso }}%;"></div>
+                    </div>
+                    <span class="card-label" style="font-size: 11px; text-align: right; width: 100%;">
+                        Total: R$ {{ "%.2f"|format(item.cartao.limite) }}
+                    </span>
+                </div>
+            </div>
+        {% else %}
+            <div class="empty-state-card">
+                <span class="material-symbols-outlined" style="font-size: 48px;">credit_card_off</span>
+                <p>Nenhum cartão de crédito cadastrado.</p>
+                <button class="btn-primary" onclick="abrirModal('modalNovoCartao')">Cadastrar Primeiro Cartão</button>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- GUIA 2: LANÇAMENTO DE DESPESAS -->
+<div id="aba-lancar" class="tab-content" style="display: none;">
+    <div class="content-header">
+        <h3>Lançar Nova Despesa no Cartão</h3>
+    </div>
+    <form id="formNovaDespesaCartao" class="form-container">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="cartao_id_despesa">Cartão de Crédito</label>
+                <select id="cartao_id_despesa" name="cartao_id" required>
+                    <option value="">Selecione um cartão...</option>
+                    {% for cartao in opcoes_cartoes %}
+                        <option value="{{ cartao.id }}">{{ cartao.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="plano_conta_id_despesa">Categoria (Plano de Contas)</label>
+                <select id="plano_conta_id_despesa" name="plano_conta_id" required>
+                    <option value="">Selecione uma categoria...</option>
+                    {% for plano in opcoes_planos %}{% if 'Despesa' in plano.tipo and '.' in plano.codigo %}
+                        <option value="{{ plano.id }}">{{ plano.codigo }} - {{ plano.nome }}</option>
+                    {% endif %}{% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="form-group-full">
+            <label for="descricao_despesa">Descrição da Compra</label>
+            <input type="text" id="descricao_despesa" name="descricao" required placeholder="Ex: Compra de Pneus, Jantar, etc.">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="data_compra_despesa">Data da Compra</label>
+                <input type="date" id="data_compra_despesa" name="data_compra" required>
+            </div>
+            <div class="form-group">
+                <label for="valor_total_despesa">Valor Total (R$)</label>
+                <input type="text" id="valor_total_despesa" name="valor_total" required class="input-moeda">
+            </div>
+            <div class="form-group">
+                <label for="numero_parcelas_despesa">Nº de Parcelas</label>
+                <input type="number" id="numero_parcelas_despesa" name="numero_parcelas" value="1" min="1" max="24" required>
+            </div>
+        </div>
+        <div class="modal-footer" style="padding: 0; margin-top: 24px;">
+            <button type="submit" class="btn-primary">Salvar Despesa</button>
+        </div>
+    </form>
+</div>
+
+<!-- GUIA 3: EXTRATO DE FATURAS -->
+<div id="aba-extrato" class="tab-content" style="display: none;">
+    <div class="content-header">
+        <h3>Consultar Faturas</h3>
+    </div>
+    <!-- Filtros -->
+    <div class="filter-form" style="background-color: var(--cor-fundo-card); padding: 20px; border-radius: 12px; margin-bottom: 24px;">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="filtro_cartao_id">Cartão</label>
+                <select id="filtro_cartao_id">
+                    <option value="">Selecione um cartão</option>
+                    {% for cartao in opcoes_cartoes %}
+                        <option value="{{ cartao.id }}">{{ cartao.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="filtro_periodo">Fatura (Mês/Ano)</label>
+                <select id="filtro_periodo">
+                    <option value="">Selecione um período</option>
+                    {% for mes in meses_filtro %}
+                        <option value="{{ mes.valor }}">{{ mes.texto }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group" style="display: flex; align-items: flex-end; gap: 8px;">
+                <button type="button" id="btn-buscar-fatura" class="btn-primary">Buscar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resultado -->
+    <div id="resultado-fatura" style="display: none;">
+        <div class="content-header">
+            <h3 id="titulo-fatura">Detalhes da Fatura</h3>
+            <button id="btn-pagar-fatura" class="btn-primary" style="background-color: var(--cor-sucesso);">
+                <span class="material-symbols-outlined" style="font-size: 18px; margin-right: 8px;">paid</span>
+                Pagar Fatura
+            </button>
+            <div id="status-fatura-paga" class="badge" style="background-color: var(--cor-sucesso); display: none;">
+                <span class="material-symbols-outlined" style="font-size: 18px; margin-right: 8px;">check_circle</span>
+                FATURA PAGA
+            </div>
+        </div>
+
+        <div style="background-color: var(--cor-fundo-card); border-radius: 12px; border: 1px solid var(--cor-borda); overflow: hidden;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Data da Compra</th>
+                        <th>Descrição</th>
+                        <th class="cell-center">Parcela</th>
+                        <th style="text-align: right;">Valor (R$)</th>
+                    </tr>
+                </thead>
+                <tbody id="corpo-tabela-fatura">
+                    <!-- Linhas serão inseridas via JavaScript -->
+                </tbody>
+                <tfoot>
+                    <tr style="background-color: var(--cor-secundaria); font-weight: bold;">
+                        <td colspan="3" style="text-align: right; padding-right: 16px;">VALOR TOTAL DA FATURA</td>
+                        <td id="total-fatura" style="text-align: right; padding: 16px;">R$ 0,00</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .credit-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+    .credit-card {
+        background: linear-gradient(45deg, #2d3748, #1a202c);
+        color: #f7fafc;
+        border-radius: 16px;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 220px;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+    }
+    .card-header { display: flex; justify-content: space-between; align-items: center; }
+    .card-name { font-weight: 600; font-size: 18px; }
+    .card-chip { color: #ecc94b; font-size: 36px; }
+    .card-label { font-size: 12px; color: #a0aec0; text-transform: uppercase; }
+    .card-main-value { font-size: 32px; font-weight: 700; letter-spacing: 1px; }
+    .card-footer { display: flex; flex-direction: column; gap: 8px; }
+    .limit-info { display: flex; justify-content: space-between; align-items: baseline; }
+    .limit-value { font-weight: 600; }
+    .progress-bar-container { width: 100%; background-color: #4a5568; border-radius: 8px; height: 8px; overflow: hidden; }
+    .progress-bar { height: 100%; background-color: var(--cor-alerta); border-radius: 8px; }
+    .form-container { background-color: var(--cor-fundo-card); padding: 24px; border-radius: 12px; border: 1px solid var(--cor-borda); max-width: 800px; }
+    .empty-state-card { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px; padding: 32px; background-color: var(--cor-fundo-card); border: 2px dashed var(--cor-borda); border-radius: 12px; color: var(--cor-texto-suave); }
+</style>
+
+<!-- Inclusão dos Modais -->
+{% include 'components/modal_cartao_credito.html' %}
+{% include 'components/modal_pagar_fatura.html' %}
+
+{% endblock %}

@@ -1,0 +1,21 @@
+<div id="modalNovaForma" class="modal-overlay">
+    <div class="modal-content" style="max-width: 500px;">
+        <form id="formNovaForma">
+            <input type="hidden" id="forma_pagto_id_edit">
+            <div class="modal-header">
+                <h3>Forma de Pagamento</h3>
+                <button type="button" class="close-btn" onclick="fecharModal('modalNovaForma')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group-full">
+                    <label for="nome_forma">Descrição</label>
+                    <input type="text" id="nome_forma" name="nome" required placeholder="Ex: Pix, Boleto Bancário">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="fecharModal('modalNovaForma')">Cancelar</button>
+                <button type="submit" class="btn-primary">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>

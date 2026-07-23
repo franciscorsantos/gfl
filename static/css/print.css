@@ -1,0 +1,13 @@
+/* static/css/print.css */
+
+/* Esconde elementos que não devem aparecer na impressão */
+.no-print {
+    display: none !important;
+}
+
+/* Resets básicos para a impressão */
+body {
+    background-color: #fff;
+    color: #000;
+    font-size: 12pt;
+}

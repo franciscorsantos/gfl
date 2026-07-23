@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard-header" style="background-color: var(--cor-fundo-card); border: 1px solid var(--cor-borda);">
+    <div class="page-subheader">
+        <h2>Gestão de Usuários</h2>
+        <p style="color: var(--cor-texto-suave);">Gerencie quem pode acessar e operar o sistema.</p>
+    </div>
+    <button class="btn-primary" onclick="abrirModalUsuario()">+ Novo Usuário</button>
+</div>
+
+<style>
+    .badge-admin { background-color: var(--cor-primaria); color: white; }
+    .badge-operador { background-color: var(--cor-texto-suave); color: white; }
+    .badge-ativo { background-color: var(--cor-sucesso); color: white; }
+    .badge-inativo { background-color: #94a3b8; color: white; }
+</style>
+
+<div style="background-color: var(--cor-fundo-card); border-radius: 12px; border: 1px solid var(--cor-borda); overflow: hidden; box-shadow: var(--sombra-card);">
+    <div class="table-responsive">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Nome Completo</th>
+                <th>E-mail</th>
+                <th class="cell-center">Perfil</th>
+                <th class="cell-center">Status</th>
+                <th class="cell-center" style="width: 100px;">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in usuarios %}
+            <tr>
+                <td style="font-weight: 500;">{{ u.nome }}</td>
+                <td>{{ u.email }}</td>
+                <td class="cell-center">
+                    <span class="badge {% if u.perfil == 'Admin' %}badge-admin{% else %}badge-operador{% endif %}">
+                        {{ u.perfil }}
+                    </span>
+                </td>
+                <td class="cell-center">
+                    <span class="badge {% if u.status == 'Ativo' %}badge-ativo{% else %}badge-inativo{% endif %}">
+                        {{ u.status }}
+                    </span>
+                </td>
+                <td class="cell-center">
+                    <button class="action-icon btn-editar-usuario" data-id="{{ u.id }}" title="Editar"><span class="material-symbols-outlined" style="font-size: 18px;">edit</span></button>
+                    <button class="action-icon btn-deletar-usuario" data-id="{{ u.id }}" title="Excluir"><span class="material-symbols-outlined" style="font-size: 18px; color: var(--cor-perigo);">delete</span></button>
+                </td>
+            </tr>
+            {% else %}
+            <tr class="table-empty-state"><td colspan="5">Nenhum usuário cadastrado.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+
+{% include 'modal_usuario.html' %}
+{% endblock %}

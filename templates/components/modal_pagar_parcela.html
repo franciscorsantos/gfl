@@ -1,0 +1,36 @@
+<div id="modalPagarParcela" class="modal-overlay">
+    <div class="modal-content" style="max-width: 500px;">
+        <form id="formPagarParcela">
+            <input type="hidden" id="pagar_parcela_id">
+            <div class="modal-header">
+                <h3>Confirmar Pagamento de Parcela</h3>
+                <button type="button" class="close-btn" onclick="fecharModal('modalPagarParcela')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Você está pagando a parcela: <strong id="pagar_parcela_descricao"></strong></p>
+                <p style="font-size: 24px; font-weight: 700; color: var(--cor-primaria); margin: 8px 0;">
+                    Valor: R$ <span id="pagar_parcela_valor">0,00</span>
+                </p>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="pagar_portador_id">Debitar da Conta (Portador)</label>
+                        <select id="pagar_portador_id" name="portador_id" required>
+                            <option value="">Selecione a conta de origem...</option>
+                            {% for portador in opcoes_portadores %}
+                                <option value="{{ portador.id }}">{{ portador.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="pagar_data_pagamento">Data do Pagamento</label>
+                        <input type="date" id="pagar_data_pagamento" name="data_pagamento" required>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="fecharModal('modalPagarParcela')">Cancelar</button>
+                <button type="submit" class="btn-primary" style="background-color: var(--cor-sucesso);">Confirmar Pagamento</button>
+            </div>
+        </form>
+    </div>
+</div>

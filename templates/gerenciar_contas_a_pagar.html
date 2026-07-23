@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard-header" style="justify-content: space-between; align-items: center; background-color: var(--cor-fundo-card); border: 1px solid var(--cor-borda); margin-bottom: 24px;">
+    <div>
+        <h2>Gestão de Contas a Pagar</h2>
+        <p style="color: var(--cor-texto-suave);">Visualize, filtre e realize a baixa de suas contas.</p>
+    </div>
+    <a href="{{ url_for('contas_a_pagar') }}" class="btn-primary">
+        + Nova Conta a Pagar
+    </a>
+</div>
+
+<!-- Formulário de Filtro -->
+<form method="get" action="{{ url_for('gestao_contas_a_pagar') }}" class="filter-form">
+    <div class="form-row">
+        <div class="form-group">
+            <label for="mes_ano">Vencimento em</label>
+            <select id="mes_ano" name="mes_ano">
+                <option value="">Qualquer Mês</option>
+                {% for mes in meses_filtro %}
+                    <option value="{{ mes.valor }}" {% if request.args.get('mes_ano') == mes.valor %}selected{% endif %}>
+                        {{ mes.texto }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="fornecedor_id">Fornecedor</label>
+            <select id="fornecedor_id" name="fornecedor_id">
+                <option value="">Todos os Fornecedores</option>
+                {% for f in opcoes_fornecedores %}
+                    <option value="{{ f.id }}" {% if request.args.get('fornecedor_id') == f.id|string %}selected{% endif %}>
+                        {{ f.nome }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="status">Status</label>
+            <select id="status" name="status">
+                <option value="pendentes" {% if request.args.get('status', 'pendentes') == 'pendentes' %}selected{% endif %}>Pendentes</option>
+                <option value="atrasadas" {% if request.args.get('status') == 'atrasadas' %}selected{% endif %}>Atrasadas</option>
+                <option value="pagas" {% if request.args.get('status') == 'pagas' %}selected{% endif %}>Pagas</option>
+                <option value="todas" {% if request.args.get('status') == 'todas' %}selected{% endif %}>Todas</option>
+            </select>
+        </div>
+        <div class="form-group" style="display: flex; align-items: flex-end; gap: 8px;">
+            <button type="submit" class="btn-primary">Filtrar</button>
+            <a href="{{ url_for('gestao_contas_a_pagar') }}" class="btn-secondary">Limpar</a>
+        </div>
+    </div>
+</form>
+
+<!-- Tabela Principal -->
+<div class="data-table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width: 30px;"></th>
+                <th>Fornecedor / Descrição</th>
+                <th>Documento</th>
+                <th>Emissão</th>
+                <th style="text-align: right;">Valor Total</th>
+                <th class="cell-center">Progresso</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for conta in contas %}
+            <tr class="conta-principal-row" data-target-details="detalhes-conta-{{ conta.id }}">
+                <td class="cell-center"><span class="material-symbols-outlined expand-icon">chevron_right</span></td>
+                <td>
+                    <strong>{{ conta.fornecedor.nome }}</strong><br>
+                    <span class="text-suave">{{ conta.descricao }}</span>
+                </td>
+                <td>
+                    {{ conta.tipo_documento or 'N/D' }}<br>
+                    <span class="text-suave">{{ conta.numero_documento or 'N/A' }}</span>
+                </td>
+                <td class="text-suave">{{ conta.data_emissao.strftime('%d/%m/%Y') }}</td>
+                <td style="text-align: right; font-weight: 600;">R$ {{ "%.2f"|format(conta.valor_total) }}</td>
+                <td class="cell-center">
+                    <span class="badge" style="background-color: var(--cor-texto-suave);">{{ conta.progresso_pagas }} / {{ conta.progresso_total }} pagas</span>
+                </td>
+            </tr>
+            <tr class="detalhes-parcelas-row" id="detalhes-conta-{{ conta.id }}">
+                <td colspan="6" style="padding: 0; background-color: #f8fafc;">
+                    <div class="parcelas-subtable">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Vencimento</th>
+                                    <th style="text-align: right;">Valor Parcela</th>
+                                    <th>Forma Pgto.</th>
+                                    <th class="cell-center">Status</th>
+                                    <th class="cell-center">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in conta.parcelas %}
+                                <tr>
+                                    <td>{{ p.numero_parcela }}</td>
+                                    <td>{{ p.data_vencimento.strftime('%d/%m/%Y') }}</td>
+                                    <td style="text-align: right; font-weight: 500;">R$ {{ "%.2f"|format(p.valor_parcela) }}</td>
+                                    <td class="text-suave">{{ p.forma_pagamento.nome }}</td>
+                                    <td class="cell-center">
+                                        {% if p.status_dinamico == 'Pago' %}
+                                            <span class="status-badge status-pago">🟢 Pago</span>
+                                        {% elif p.status_dinamico == 'Atrasado' %}
+                                            <span class="status-badge status-atrasado">🔴 Atrasado</span>
+                                        {% else %}
+                                            <span class="status-badge status-pendente">🟡 Pendente</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="cell-center">
+                                        {% if p.status != 'Pago' %}
+                                        <button class="btn-pagar-parcela btn-sm" 
+                                                data-parcela-id="{{ p.id }}" 
+                                                data-parcela-valor="{{ '%.2f'|format(p.valor_parcela) }}"
+                                                data-parcela-desc="Parcela {{p.numero_parcela}} de {{conta.descricao}}">
+                                            Pagar
+                                        </button>
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr class="table-empty-state">
+                <td colspan="6">Nenhuma conta a pagar encontrada com os filtros aplicados.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% include 'components/modal_pagar_parcela.html' %}
+
+<style>
+    .filter-form { background-color: var(--cor-fundo-card); padding: 20px; border-radius: 12px; margin-bottom: 24px; }
+    .data-table-container { background-color: var(--cor-fundo-card); border-radius: 12px; border: 1px solid var(--cor-borda); overflow: hidden; box-shadow: var(--sombra-card); }
+    .text-suave { color: var(--cor-texto-suave); font-size: 13px; }
+    .conta-principal-row { cursor: pointer; transition: background-color 0.2s ease; }
+    .conta-principal-row:hover { background-color: var(--cor-secundaria); }
+    .conta-principal-row.expanded { background-color: #eef2ff; }
+    .conta-principal-row.expanded .expand-icon { transform: rotate(90deg); }
+    .expand-icon { transition: transform 0.2s ease-in-out; }
+    .detalhes-parcelas-row { display: none; }
+    .parcelas-subtable { padding: 16px 24px; }
+    .parcelas-subtable table { width: 100%; border-collapse: collapse; }
+    .parcelas-subtable th { font-size: 11px; text-transform: uppercase; color: var(--cor-texto-suave); padding: 8px; border-bottom: 1px solid var(--cor-borda); text-align: left; }
+    .parcelas-subtable td { padding: 12px 8px; border-bottom: 1px solid var(--cor-secundaria); }
+    .status-badge { font-size: 12px; font-weight: 600; }
+    .btn-pagar-parcela { background-color: var(--cor-sucesso); color: white; border: none; border-radius: 4px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
+</style>
+{% endblock %}

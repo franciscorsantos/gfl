@@ -1,0 +1,34 @@
+<div id="modalNovoFornecedor" class="modal-overlay">
+    <div class="modal-content" style="max-width: 500px;">
+        <form id="formNovoFornecedor">
+            <input type="hidden" id="fornecedor_id_edit">
+            <div class="modal-header">
+                <h3>Fornecedor</h3>
+                <button type="button" class="close-btn" onclick="fecharModal('modalNovoFornecedor')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group-full">
+                    <label for="nome_fornecedor">Nome / Razão Social</label>
+                    <input type="text" id="nome_fornecedor" name="nome" required placeholder="Ex: Posto Shell, Oficina do Zé">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cnpj_cpf_fornecedor">CNPJ / CPF</label>
+                        <input type="text" id="cnpj_cpf_fornecedor" name="cnpj_cpf" placeholder="Opcional">
+                    </div>
+                    <div class="form-group">
+                        <label for="status_fornecedor">Status</label>
+                        <select id="status_fornecedor" name="status" required>
+                            <option value="Ativo">Ativo</option>
+                            <option value="Inativo">Inativo</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="fecharModal('modalNovoFornecedor')">Cancelar</button>
+                <button type="submit" class="btn-primary">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .saldo-negativo { color: var(--cor-perigo); }
+    .saldo-positivo { color: var(--cor-texto-principal); }
+</style>
+
+<div class="dashboard-header" style="justify-content: space-between; align-items: center; background-color: var(--cor-fundo-card); border: 1px solid var(--cor-borda); margin-bottom: 24px;">
+    <div>
+        <h2>Painel Geral</h2>
+        <p style="color: var(--cor-texto-suave);">Visão geral e saúde do seu fluxo de caixa.</p>
+    </div>
+    <button class="btn-primary" onclick="abrirModal('modalNovoLancamento')">
+        + Novo Lançamento
+    </button>
+</div>
+
+<!-- Cartões de Resumo -->
+<div class="summary-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-bottom: 32px;">
+    
+    <!-- Cartão: Saldo Atual -->
+    <div class="card" style="background-color: var(--cor-fundo-card); padding: 24px; border-radius: 12px; border: 1px solid var(--cor-borda); box-shadow: var(--sombra-card);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="color: var(--cor-texto-suave); font-size: 14px; font-weight: 500;">Saldo Atual</h3>
+            <span class="material-symbols-outlined" style="color: var(--cor-primaria);">account_balance_wallet</span>
+        </div>
+        
+        <!-- CORREÇÃO: Uso de class ao invés de style para a cor dinâmica do saldo -->
+        <h2 class="{% if saldo_atual < 0 %}saldo-negativo{% else %}saldo-positivo{% endif %}" style="font-size: 28px;">
+            R$ {{ "%.2f"|format(saldo_atual) }}
+        </h2>
+    </div>
+
+    <!-- Cartão: Entradas -->
+    <div class="card" style="background-color: var(--cor-fundo-card); padding: 24px; border-radius: 12px; border: 1px solid var(--cor-borda); box-shadow: var(--sombra-card);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="color: var(--cor-texto-suave); font-size: 14px; font-weight: 500;">Total de Entradas</h3>
+            <span class="material-symbols-outlined" style="color: var(--cor-sucesso);">trending_up</span>
+        </div>
+        <h2 style="font-size: 28px; color: var(--cor-sucesso);">
+            R$ {{ "%.2f"|format(total_receitas) }}
+        </h2>
+    </div>
+
+    <!-- Cartão: Saídas -->
+    <div class="card" style="background-color: var(--cor-fundo-card); padding: 24px; border-radius: 12px; border: 1px solid var(--cor-borda); box-shadow: var(--sombra-card);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="color: var(--cor-texto-suave); font-size: 14px; font-weight: 500;">Total de Saídas</h3>
+            <span class="material-symbols-outlined" style="color: var(--cor-perigo);">trending_down</span>
+        </div>
+        <h2 style="font-size: 28px; color: var(--cor-perigo);">
+            R$ {{ "%.2f"|format(total_despesas) }}
+        </h2>
+    </div>
+</div>
+
+<!-- Nova Seção: Saldos por Conta -->
+<div style="margin-bottom: 32px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="font-size: 16px;">Saldos por Conta</h3>
+    </div>
+    <div class="summary-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px;">
+        {% for portador in saldos_portadores %}
+            <div class="card" style="background-color: var(--cor-fundo-card); padding: 24px; border-radius: 12px; border: 1px solid var(--cor-borda); box-shadow: var(--sombra-card);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 style="color: var(--cor-texto-suave); font-size: 14px; font-weight: 500;">{{ portador.nome }}</h3>
+                    <span class="material-symbols-outlined" style="color: var(--cor-texto-suave);">
+                        {% if 'Caixa' in portador.tipo %}wallet{% else %}account_balance{% endif %}
+                    </span>
+                </div>
+                <h2 class="{% if portador.saldo_final < 0 %}saldo-negativo{% else %}saldo-positivo{% endif %}" style="font-size: 28px;">
+                    R$ {{ "%.2f"|format(portador.saldo_final) }}
+                </h2>
+                <p style="font-size: 12px; color: var(--cor-texto-suave); margin-top: 4px;">{{ portador.tipo }}</p>
+            </div>
+        {% else %}
+            <div class="card" style="background-color: var(--cor-fundo-card); padding: 24px; border-radius: 12px; border: 2px dashed var(--cor-borda); text-align: center; color: var(--cor-texto-suave);">
+                <p>Nenhuma conta (portador) cadastrada.</p>
+                <a href="{{ url_for('cadastros') }}" style="margin-top: 8px; color: var(--cor-primaria); font-weight: 500;">Cadastrar agora</a>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Tabela de Últimos Lançamentos (Dashboard) -->
+<div style="background-color: var(--cor-fundo-card); border-radius: 12px; border: 1px solid var(--cor-borda); padding: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="font-size: 16px;">Últimos Lançamentos</h3>
+        <a href="{{ url_for('lancamentos') }}" style="color: var(--cor-primaria); text-decoration: none; font-size: 14px; font-weight: 500;">Ver todos</a>
+    </div>
+    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+    <thead>
+        <tr style="border-bottom: 1px solid var(--cor-borda); color: var(--cor-texto-suave); font-size: 12px; text-transform: uppercase;">
+            <th style="padding: 12px 8px;">Data</th>
+            <th style="padding: 12px 8px;">Descrição / Categoria</th>
+            <th style="padding: 12px 8px;">Valor</th>
+            {% if current_user.perfil == 'Admin' %}
+            <th style="padding: 12px 8px; text-align: center;">Ações</th> <!-- Nova Coluna -->
+            {% endif %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for t in transacoes %}
+        <tr style="border-bottom: 1px solid var(--cor-secundaria);">
+            <td style="padding: 16px 8px; color: var(--cor-texto-suave);">
+                {{ t.data_vencimento.strftime('%d/%m/%Y') }}
+            </td>
+            
+            <td style="padding: 16px 8px; font-weight: 500;">
+                {{ t.descricao }} <br>
+                <span style="font-size: 12px; color: var(--cor-texto-suave); font-weight: normal;">
+                    {{ t.categoria.nome if t.categoria else 'Sem Categoria' }}
+                </span>
+            </td>
+            
+            <td style="padding: 16px 8px; font-weight: 600;" class="{% if t.tipo == 'Despesa' %}saldo-negativo{% else %}saldo-positivo{% endif %}">
+                {% if t.tipo == 'Despesa' %}-{% else %}+{% endif %} R$ {{ "%.2f"|format(t.valor) }}
+            </td>
+
+            {% if current_user.perfil == 'Admin' %}
+            <td style="padding: 16px 8px; text-align: center;">
+                <button class="action-icon btn-deletar-lancamento" data-id="{{ t.id }}" title="Excluir Lançamento">
+                    <span class="material-symbols-outlined" style="font-size: 18px; color: var(--cor-perigo);">delete</span>
+                </button>
+            </td>
+            {% endif %}
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="{{ 4 if current_user.perfil == 'Admin' else 3 }}" style="padding: 24px; text-align: center; color: var(--cor-texto-suave);">
+                Nenhuma movimentação registrada recentemente.
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+<!-- Inclusão do Modal de Lançamentos -->
+{% include 'components/modal_lancamento.html' %}
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard-header" style="background-color: var(--cor-fundo-card); border: 1px solid var(--cor-borda);">
+    <div class="page-subheader">
+        <h2>Gestão de Backups</h2>
+        <p style="color: var(--cor-texto-suave);">Gerencie e baixe cópias de segurança do banco de dados.</p>
+    </div>
+    <a href="{{ url_for('gerar_backup_manual') }}" class="btn-primary">Gerar Backup Agora</a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<div style="background-color: var(--cor-fundo-card); border-radius: 12px; border: 1px solid var(--cor-borda); overflow: hidden; box-shadow: var(--sombra-card);">
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Nome do Arquivo</th>
+                    <th>Data de Criação</th>
+                    <th style="text-align: right;">Tamanho</th>
+                    <th class="cell-center" style="width: 150px;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for backup in backups %}
+                <tr>
+                    <td style="font-family: monospace;">{{ backup.nome }}</td>
+                    <td>{{ backup.data_criacao }}</td>
+                    <td style="text-align: right;">{{ "%.2f MB"|format(backup.tamanho) }}</td>
+                    <td class="cell-center">
+                        <a href="{{ url_for('download_backup', filename=backup.nome) }}" class="btn-secondary" style="padding: 6px 12px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">download</span>
+                            Download
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr class="table-empty-state"><td colspan="4">Nenhum arquivo de backup encontrado.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

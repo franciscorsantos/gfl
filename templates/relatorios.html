@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard-header no-print" style="background-color: var(--cor-fundo-card); border: 1px solid var(--cor-borda);">
+    <div class="page-subheader">
+        <h2>Relatórios e Inteligência de Negócios</h2>
+        <p style="color: var(--cor-texto-suave);">Análise consolidada do desempenho financeiro e operacional.</p>
+    </div>
+</div>
+
+<!-- Formulário de Filtro Global -->
+<form method="get" action="{{ url_for('relatorios') }}" class="filter-form no-print">
+    <div class="form-row">
+        <div class="form-group">
+            <label for="data_inicio">Data Início</label>
+            <input type="date" id="data_inicio" name="data_inicio" value="{{ data_inicio.strftime('%Y-%m-%d') }}">
+        </div>
+        <div class="form-group">
+            <label for="data_fim">Data Fim</label>
+            <input type="date" id="data_fim" name="data_fim" value="{{ data_fim.strftime('%Y-%m-%d') }}">
+        </div>
+        <div class="form-group" style="display: flex; align-items: flex-end; gap: 8px;">
+            <button type="submit" class="btn-primary">Gerar Relatório</button>
+            <button type="button" onclick="window.print()" class="btn-secondary" title="Imprimir/Salvar PDF">
+                <span class="material-symbols-outlined" style="vertical-align: middle;">print</span>
+            </button>
+        </div>
+    </div>
+    <div class="form-row" style="margin-top: 12px; gap: 8px;">
+        <button type="button" class="btn-quick-filter" data-filter="this-month">Este Mês</button>
+        <button type="button" class="btn-quick-filter" data-filter="last-month">Mês Passado</button>
+        <button type="button" class="btn-quick-filter" data-filter="this-year">Este Ano</button>
+    </div>
+</form>
+
+<style>
+    .filter-form { background-color: var(--cor-fundo-card); padding: 20px; border-radius: 12px; margin-bottom: 24px; border: 1px solid var(--cor-borda); }
+    .btn-quick-filter { background-color: var(--cor-secundaria); border: 1px solid var(--cor-borda); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    .report-section { background-color: var(--cor-fundo-card); padding: 24px; border-radius: 12px; border: 1px solid var(--cor-borda); margin-bottom: 24px; }
+    .report-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; border-bottom: 1px solid var(--cor-borda); padding-bottom: 8px; }
+    
+    /* DRE Styles */
+    .dre-table { width: 100%; border-collapse: collapse; }
+    .dre-table td { padding: 8px 12px; border-bottom: 1px solid var(--cor-secundaria); }
+    .dre-group { font-weight: 700; background-color: var(--cor-secundaria); }
+    .dre-item { padding-left: 32px !important; font-size: 14px; }
+    .dre-total { font-weight: 700; text-align: right; }
+    .dre-summary { font-weight: 700; font-size: 16px; background-color: #f0f0f0; }
+    .dre-summary.positive { color: var(--cor-sucesso); }
+    .dre-summary.negative { color: var(--cor-perigo); }
+
+    @media print {
+        body { background-color: white; }
+        .no-print { display: none !important; }
+        .page-content { padding: 0; }
+        .report-section { border: none; box-shadow: none; margin-bottom: 20px; page-break-inside: avoid; }
+        .layout-container { display: block; }
+    }
+</style>
+
+<!-- Seção DRE -->
+<div class="report-section">
+    <h3 class="report-title">DRE Simplificado (Demonstrativo de Resultado do Exercício)</h3>
+    <p style="font-size: 14px; color: var(--cor-texto-suave); margin-bottom: 16px;">Período: {{ data_inicio.strftime('%d/%m/%Y') }} a {{ data_fim.strftime('%d/%m/%Y') }}</p>
+    
+    <table class="dre-table">
+        <!-- Receita Bruta -->
+        <tr class="dre-group"><td colspan="2">(+) Receita Operacional Bruta</td><td class="dre-total">R$ {{ "%.2f"|format(dre.receita_bruta.total) }}</td></tr>
+        {% for item in dre.receita_bruta['items'] %}
+        <tr><td></td><td class="dre-item">{{ item.nome }}</td><td class="dre-total">R$ {{ "%.2f"|format(item.total) }}</td></tr>
+        {% endfor %}
+
+        <!-- Custos Variáveis -->
+        <tr class="dre-group"><td colspan="2">(-) Custos Variáveis da Operação</td><td class="dre-total">- R$ {{ "%.2f"|format(dre.custos_variaveis.total) }}</td></tr>
+        {% for item in dre.custos_variaveis['items'] %}
+        <tr><td></td><td class="dre-item">{{ item.nome }}</td><td class="dre-total">- R$ {{ "%.2f"|format(item.total) }}</td></tr>
+        {% endfor %}
+
+        <!-- Margem de Contribuição -->
+        <tr class="dre-summary {% if dre.margem_contribuicao >= 0 %}positive{% else %}negative{% endif %}">
+            <td colspan="2">(=) Margem de Contribuição</td>
+            <td class="dre-total">R$ {{ "%.2f"|format(dre.margem_contribuicao) }}</td>
+        </tr>
+
+        <!-- Custos Fixos e Despesas Admin -->
+        <tr class="dre-group"><td colspan="2">(-) Custos Fixos e Despesas Administrativas</td><td class="dre-total">- R$ {{ "%.2f"|format(dre.custos_fixos.total + dre.despesas_admin.total) }}</td></tr>
+        {% for item in dre.custos_fixos['items'] %}
+        <tr><td></td><td class="dre-item">{{ item.nome }}</td><td class="dre-total">- R$ {{ "%.2f"|format(item.total) }}</td></tr>
+        {% endfor %}
+        {% for item in dre.despesas_admin['items'] %}
+        <tr><td></td><td class="dre-item">{{ item.nome }}</td><td class="dre-total">- R$ {{ "%.2f"|format(item.total) }}</td></tr>
+        {% endfor %}
+
+        <!-- Resultado Operacional -->
+        <tr class="dre-summary {% if dre.resultado_operacional >= 0 %}positive{% else %}negative{% endif %}">
+            <td colspan="2">(=) Resultado Operacional (EBITDA)</td>
+            <td class="dre-total">R$ {{ "%.2f"|format(dre.resultado_operacional) }}</td>
+        </tr>
+
+        <!-- Impostos -->
+        <tr class="dre-group"><td colspan="2">(-) Impostos sobre o Faturamento</td><td class="dre-total">- R$ {{ "%.2f"|format(dre.impostos.total) }}</td></tr>
+        {% for item in dre.impostos['items'] %}
+        <tr><td></td><td class="dre-item">{{ item.nome }}</td><td class="dre-total">- R$ {{ "%.2f"|format(item.total) }}</td></tr>
+        {% endfor %}
+
+        <!-- Lucro Líquido -->
+        <tr class="dre-summary {% if dre.lucro_liquido >= 0 %}positive{% else %}negative{% endif %}" style="font-size: 18px;">
+            <td colspan="2">(=) Lucro Líquido do Período</td>
+            <td class="dre-total">R$ {{ "%.2f"|format(dre.lucro_liquido) }}</td>
+        </tr>
+    </table>
+</div>
+
+<!-- Seção Gráficos -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+    <div class="report-section">
+        <h3 class="report-title">Despesas por Centro de Custo (Frota/Rota)</h3>
+        <canvas id="graficoDespesasCentroCusto"></canvas>
+    </div>
+    <div class="report-section">
+        <h3 class="report-title">Composição das Despesas</h3>
+        <canvas id="graficoDespesasCategoria" style="max-height: 300px; margin: auto;"></canvas>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // --- Lógica dos Filtros Rápidos ---
+    const dataInicioInput = document.getElementById('data_inicio');
+    const dataFimInput = document.getElementById('data_fim');
+    
+    document.querySelectorAll('.btn-quick-filter').forEach(button => {
+        button.addEventListener('click', function() {
+            const filterType = this.dataset.filter;
+            const hoje = new Date();
+            let inicio, fim;
+
+            if (filterType === 'this-month') {
+                inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+                fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+            } else if (filterType === 'last-month') {
+                inicio = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+                fim = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
+            } else if (filterType === 'this-year') {
+                inicio = new Date(hoje.getFullYear(), 0, 1);
+                fim = new Date(hoje.getFullYear(), 11, 31);
+            }
+
+            dataInicioInput.value = inicio.toISOString().split('T')[0];
+            dataFimInput.value = fim.toISOString().split('T')[0];
+            
+            this.closest('form').submit();
+        });
+    });
+
+    // --- Gráfico de Despesas por Centro de Custo (Barras Horizontais) ---
+    const ctxCentroCusto = document.getElementById('graficoDespesasCentroCusto');
+    if (ctxCentroCusto) {
+        const dadosCentroCusto = {{ despesas_por_centro|tojson }};
+        new Chart(ctxCentroCusto, {
+            type: 'bar',
+            data: {
+                labels: dadosCentroCusto.map(d => d.nome),
+                datasets: [{
+                    label: 'Total de Despesas (R$)',
+                    data: dadosCentroCusto.map(d => d.total),
+                    backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                    borderColor: 'rgba(239, 68, 68, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: 'Ranking de Despesas por Centro de Custo' }
+                }
+            }
+        });
+    }
+
+    // --- Gráfico de Composição das Despesas (Donut) ---
+    const ctxCategoria = document.getElementById('graficoDespesasCategoria');
+    if (ctxCategoria) {
+        const dadosDonut = JSON.parse('{{ dados_donut_json|safe }}');
+        new Chart(ctxCategoria, {
+            type: 'doughnut',
+            data: {
+                labels: dadosDonut.labels,
+                datasets: [{
+                    label: 'Total (R$)',
+                    data: dadosDonut.valores,
+                    backgroundColor: ['rgba(245, 158, 11, 0.8)', 'rgba(239, 68, 68, 0.8)', 'rgba(99, 102, 241, 0.8)', 'rgba(100, 116, 139, 0.8)'],
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'top' },
+                    title: { display: true, text: 'Divisão de Despesas por Macro-Categoria' }
+                }
+            }
+        });
+    }
+});
+</script>
+
+{% endblock %}
