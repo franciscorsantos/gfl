@@ -1,0 +1,12 @@
+[Unit]
+Description=Servico Python - GFL
+After=network.target
+
+[Service]
+User=fcorsantos
+WorkingDirectory=/home/fcorsantos/gfl
+ExecStart=/home/fcorsantos/gfl/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:5000 app:app
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
