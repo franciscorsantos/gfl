@@ -544,6 +544,70 @@ input, select {
 }
 
 /* ==========================================
+   RELATÓRIO DE FROTA (EXTRATO)
+   ========================================== */
+.report-container-single-table .data-table {
+    border: 1px solid var(--cor-borda);
+}
+
+.column-value {
+    text-align: right;
+    width: 200px; /* Largura fixa para alinhar os valores */
+}
+
+.nested-table-group .vehicle-header-row th {
+    background-color: #eef2ff; /* Tom de azul claro para destacar o veículo */
+    color: var(--cor-primaria);
+    font-size: 15px;
+    padding: 12px 16px;
+    text-align: left;
+    border-top: 2px solid #dde4ee; /* Linha mais forte para separar os veículos */
+    border-bottom: 1px solid var(--cor-borda);
+}
+
+/* Remove a borda superior do primeiro grupo de veículo */
+.nested-table-group:first-of-type .vehicle-header-row th {
+    border-top: none;
+}
+
+.nested-table-group .fleet-report-icon {
+    vertical-align: bottom;
+    margin-right: 8px;
+    font-size: 20px;
+}
+
+.nested-table-group .category-row .fleet-report-category {
+    padding-left: 40px; /* Indentação para as categorias */
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--cor-texto-suave);
+    font-size: 13px;
+}
+
+.nested-table-group .fleet-report-value {
+    font-weight: 500;
+}
+
+.nested-table-group .total-row {
+    background-color: var(--cor-secundaria);
+}
+
+.nested-table-group .total-row .total-label {
+    font-weight: 700;
+    text-align: right;
+    padding-right: 16px;
+}
+
+.nested-table-group .total-row .fleet-report-value {
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.nested-table-group .total-row .total-value-highlight {
+    color: var(--cor-perigo);
+}
+
+/* ==========================================
    ESTILOS RESPONSIVOS (MOBILE & TABLET)
    ========================================== */
 
@@ -638,24 +702,49 @@ input, select, .btn-primary, .btn-secondary {
 }
 
 @media print {
+    /* Oculta elementos de navegação e filtros */
     .no-print {
         display: none !important;
     }
+
+    /* Reseta o layout para aproveitar a página */
     body, .page-content {
         padding: 0;
         margin: 0;
-        background-color: #FFF; /* Fundo branco para impressão */
+        background-color: #FFF !important;
+        font-size: 10pt;
+        color: #000 !important;
     }
     .layout-container {
-        display: block; /* Remove o flexbox para o conteúdo principal ocupar tudo */
+        display: block;
     }
     .main-content {
         margin: 0;
         flex: none;
+        width: 100%;
     }
-    .report-container, .data-table, .dashboard-header {
+    .report-container, .report-container-single-table {
+        margin: 0;
+        width: 100%;
+    }
+
+    /* Remove adornos visuais para economizar tinta */
+    .report-container, .data-table, .dashboard-header, .report-container-single-table {
         border: none !important;
         box-shadow: none !important;
+        border-radius: 0 !important;
+    }
+    .nested-table-group .vehicle-header-row th, .nested-table-group .total-row, .text-danger, .total-value-highlight, .text-success {
+        background-color: transparent !important;
+        color: #000 !important;
+    }
+    .data-table th, .data-table td {
+        padding: 6px 8px; /* Reduz o padding das células */
+    }
+
+    /* Evita quebra de página dentro de linhas ou grupos */
+    .nested-table-group, tr {
+        page-break-inside: avoid;
     }
     .dashboard-header {
         padding: 10px 0;

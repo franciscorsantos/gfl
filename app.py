@@ -10,6 +10,7 @@ import shutil
 import io
 import csv
 from flask_apscheduler import APScheduler
+from flask_migrate import Migrate
 
 from models import (
     db, Portador, PlanoConta, FormaPagamento, CentroCusto, Transacao,
@@ -37,6 +38,11 @@ scheduler.start()
 
 # Vincula o SQLAlchemy à nossa aplicação Flask
 db.init_app(app)
+
+# Configuração do Flask-Migrate. A convenção de nomenclatura já está no objeto 'db' de models.py
+migrate = Migrate(app, db,
+                  render_as_batch=True,
+                  compare_type=True)
 
 # Configuração do Flask-Login
 login_manager = LoginManager()
@@ -639,6 +645,28 @@ def extrato():
             func.sum(case((Transacao.tipo == 'Despesa', Transacao.valor), else_=0)).label('saidas')
         ).join(CentroCusto, isouter=True).group_by(CentroCusto.id, CentroCusto.nome).order_by(CentroCusto.nome).all()
 
+    elif visao == 'frota_detalhado':
+        # Query para obter despesas por veículo e por categoria
+        despesas_frota_raw = query.with_entities(
+            CentroCusto.nome,
+            PlanoConta.nome,
+            func.sum(Transacao.valor).label('total')
+        ).join(CentroCusto, Transacao.centro_custo_id == CentroCusto.id)\
+         .join(PlanoConta, Transacao.plano_conta_id == PlanoConta.id)\
+         .filter(
+            Transacao.tipo == 'Despesa',
+            CentroCusto.tipo == 'Veículo' # Filtra apenas para centros de custo do tipo 'Veículo'
+         ).group_by(CentroCusto.nome, PlanoConta.nome)\
+           .order_by(CentroCusto.nome, PlanoConta.nome).all()
+
+        # Processa os dados brutos para o dicionário aninhado desejado
+        relatorio_frota = {}
+        for veiculo, categoria, total in despesas_frota_raw:
+            if veiculo not in relatorio_frota:
+                relatorio_frota[veiculo] = {'Total_Veiculo': Decimal(0)}
+            relatorio_frota[veiculo][categoria] = total
+            relatorio_frota[veiculo]['Total_Veiculo'] += total
+        resultados = relatorio_frota
     else: # 'cronologico'
         transacoes_filtradas = query.order_by(Transacao.data_vencimento.asc(), Transacao.id.asc()).all()
         
@@ -832,6 +860,11 @@ def criar_despesa_cartao():
         numero_parcelas = int(dados['numero_parcelas'])
         valor_parcela = (valor_total / Decimal(numero_parcelas)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
+        # Validação para garantir que o rateio é obrigatório
+        centro_custo_id = dados.get('centro_custo_id')
+        if not centro_custo_id or not dados.get('plano_conta_id'):
+             return jsonify({'status': 'erro', 'mensagem': 'Os campos Plano de Contas e Centro de Custo são obrigatórios.'}), 400
+
         # Lógica para determinar a data da primeira fatura
         if data_compra.day > cartao.dia_fechamento:
             data_primeira_fatura = data_compra + relativedelta(months=1)
@@ -852,7 +885,8 @@ def criar_despesa_cartao():
                 fatura_mes=data_fatura_parcela.month,
                 fatura_ano=data_fatura_parcela.year,
                 cartao_id=cartao.id,
-                plano_conta_id=int(dados['plano_conta_id'])
+                plano_conta_id=int(dados['plano_conta_id']),
+                centro_custo_id=int(centro_custo_id)
             )
             db.session.add(nova_despesa)
         
@@ -1478,7 +1512,10 @@ def pagar_fatura():
         cartao_id = int(dados['cartao_id'])
         periodo = dados['periodo'] # Formato 'YYYY-MM'
         portador_id = int(dados['portador_id'])
-
+        # Captura a data do pagamento do request, com fallback para a data atual
+        data_pagamento_str = dados.get('data_pagamento', date.today().strftime('%Y-%m-%d'))
+        data_pagamento = datetime.strptime(data_pagamento_str, '%Y-%m-%d').date()
+        
         ano, mes = map(int, periodo.split('-'))
         cartao = CartaoCredito.query.get_or_404(cartao_id)
 
@@ -1487,32 +1524,41 @@ def pagar_fatura():
         if not despesas_fatura:
             return jsonify({'status': 'erro', 'mensagem': 'Fatura não encontrada ou já está paga.'}), 400
 
-        total_a_pagar = sum(d.valor_parcela for d in despesas_fatura)
-        # data_vencimento_fatura = date(ano, mes, cartao.dia_vencimento) # BUG: Usava a data de vencimento da fatura, não a data do pagamento.
+        # Busca uma forma de pagamento padrão para a transação de baixa
+        forma_pagto_padrao = FormaPagamento.query.filter(FormaPagamento.nome.ilike('%transferência%')).first()
+        if not forma_pagto_padrao:
+            forma_pagto_padrao = FormaPagamento.query.first()
+            if not forma_pagto_padrao:
+                 return jsonify({'status': 'erro', 'mensagem': 'Nenhuma Forma de Pagamento encontrada no sistema.'}), 500
 
-        # Cria a transação de débito real na conta bancária escolhida
-        transacao_pagamento = Transacao(
-            tipo='Despesa',
-            descricao=f"Pagamento Fatura {cartao.nome} - {mes:02d}/{ano}",
-            status='Realizado',
-            valor=total_a_pagar,
-            data_vencimento=date.today(), # CORREÇÃO: Usa a data atual como data do pagamento.
-            portador_id=portador_id,
-            plano_conta_id=PlanoConta.query.filter_by(codigo='02.05.01').first().id, # "Pgto. Emprestimos / Financiamentos"
-            forma_pagto_id=FormaPagamento.query.filter_by(nome='Transferência (TED / DOC)').first().id,
-            usuario_id=current_user.id
-        )
-        db.session.add(transacao_pagamento)
-        db.session.flush()
-
+        total_pago = Decimal('0.0')
+        # --- INÍCIO DA NOVA LÓGICA DE DESMEMBRAMENTO ---
         for despesa in despesas_fatura:
+            # Para cada item da fatura, cria uma transação de saída individual
+            transacao_pagamento = Transacao(
+                tipo='Despesa',
+                descricao=f"Pgto Fatura {cartao.nome}: {despesa.descricao}",
+                status='Realizado',
+                valor=despesa.valor_parcela,
+                data_vencimento=data_pagamento, # Usa a data do pagamento informada
+                portador_id=portador_id,
+                plano_conta_id=despesa.plano_conta_id,      # Preserva a categoria original
+                centro_custo_id=despesa.centro_custo_id,  # Preserva o centro de custo original
+                forma_pagto_id=forma_pagto_padrao.id,
+                usuario_id=current_user.id
+            )
+            db.session.add(transacao_pagamento)
+            db.session.flush() # Obtém o ID da transação antes do commit
+
+            # Vincula a despesa do cartão à sua transação de pagamento correspondente
             despesa.transacao_pagamento_id = transacao_pagamento.id
+            total_pago += despesa.valor_parcela
         
         db.session.commit()
 
-        detalhes = f"Pagou a fatura do cartão '{cartao.nome}' (período {mes:02d}/{ano}) no valor de R$ {total_a_pagar:.2f}."
+        detalhes = f"Pagou a fatura do cartão '{cartao.nome}' (período {mes:02d}/{ano}) no valor de R$ {total_pago:.2f}, gerando {len(despesas_fatura)} lançamentos individuais."
         registrar_log('PAGAR', 'Cartões de Crédito', detalhes)
-        return jsonify({'status': 'sucesso', 'mensagem': 'Fatura paga com sucesso!'})
+        return jsonify({'status': 'sucesso', 'mensagem': 'Fatura paga com sucesso! Os lançamentos foram desmembrados no extrato.'})
     except Exception as e:
         db.session.rollback()
         return jsonify({'status': 'erro', 'mensagem': str(e)}), 400

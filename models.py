@@ -1,10 +1,22 @@
+
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import MetaData
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 
-# Instância do banco de dados que será inicializada no app.py
-db = SQLAlchemy()
+# Convenção de nomenclatura para todas as constraints (chaves, índices, etc.)
+# Isso resolve o erro "ValueError: Constraint must have a name" no SQLite.
+naming_convention = {
+    "ix": "ix_%(column_0_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s"
+}
+
+# Instância do banco de dados com a convenção de nomenclatura nos metadados
+db = SQLAlchemy(metadata=MetaData(naming_convention=naming_convention))
 
 class LogAuditoria(db.Model):
     __tablename__ = 'log_auditoria'
@@ -155,8 +167,10 @@ class DespesaCartao(db.Model):
     fatura_ano = db.Column(db.Integer, nullable=False)
     cartao_id = db.Column(db.Integer, db.ForeignKey('cartao_credito.id'), nullable=False)
     plano_conta_id = db.Column(db.Integer, db.ForeignKey('plano_conta.id'), nullable=False)
+    centro_custo_id = db.Column(db.Integer, db.ForeignKey('centro_custo.id'), nullable=False)
     transacao_pagamento_id = db.Column(db.Integer, db.ForeignKey('transacao.id'), nullable=True)
     categoria = db.relationship('PlanoConta', backref='despesas_cartao', lazy=True)
+    centro_custo = db.relationship('CentroCusto', backref='despesas_cartao', lazy=True)
 
 class Fornecedor(db.Model):
     id = db.Column(db.Integer, primary_key=True)

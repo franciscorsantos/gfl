@@ -4,3 +4,4 @@ Flask-Login
 python-dateutil
 Werkzeug
 Flask-APScheduler
+Flask-Migrate

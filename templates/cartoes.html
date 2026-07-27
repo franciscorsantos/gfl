@@ -73,13 +73,8 @@
                 </select>
             </div>
             <div class="form-group">
-                <label for="plano_conta_id_despesa">Categoria (Plano de Contas)</label>
-                <select id="plano_conta_id_despesa" name="plano_conta_id" required>
-                    <option value="">Selecione uma categoria...</option>
-                    {% for plano in opcoes_planos %}{% if 'Despesa' in plano.tipo and '.' in plano.codigo %}
-                        <option value="{{ plano.id }}">{{ plano.codigo }} - {{ plano.nome }}</option>
-                    {% endif %}{% endfor %}
-                </select>
+                <label for="data_compra_despesa">Data da Compra</label>
+                <input type="date" id="data_compra_despesa" name="data_compra" required>
             </div>
         </div>
         <div class="form-group-full">
@@ -88,9 +83,25 @@
         </div>
         <div class="form-row">
             <div class="form-group">
-                <label for="data_compra_despesa">Data da Compra</label>
-                <input type="date" id="data_compra_despesa" name="data_compra" required>
+                <label for="plano_conta_id_despesa">Categoria (Plano de Contas)</label>
+                <select id="plano_conta_id_despesa" name="plano_conta_id" required>
+                    <option value="">Selecione uma categoria...</option>
+                    {% for plano in opcoes_planos %}{% if 'Despesa' in plano.tipo and '.' in plano.codigo %}
+                        <option value="{{ plano.id }}">{{ plano.codigo }} - {{ plano.nome }}</option>
+                    {% endif %}{% endfor %}
+                </select>
             </div>
+            <div class="form-group">
+                <label for="centro_custo_id_despesa">Centro de Custo</label>
+                <select id="centro_custo_id_despesa" name="centro_custo_id" required>
+                    <option value="">Selecione um centro de custo...</option>
+                    {% for centro in opcoes_centros %}
+                        <option value="{{ centro.id }}">{{ centro.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
             <div class="form-group">
                 <label for="valor_total_despesa">Valor Total (R$)</label>
                 <input type="text" id="valor_total_despesa" name="valor_total" required class="input-moeda">
@@ -142,7 +153,7 @@
     <div id="resultado-fatura" style="display: none;">
         <div class="content-header">
             <h3 id="titulo-fatura">Detalhes da Fatura</h3>
-            <button id="btn-pagar-fatura" class="btn-primary" style="background-color: var(--cor-sucesso);">
+            <button id="abrir-modal-pagar-fatura" class="btn-primary" style="background-color: var(--cor-sucesso);">
                 <span class="material-symbols-outlined" style="font-size: 18px; margin-right: 8px;">paid</span>
                 Pagar Fatura
             </button>

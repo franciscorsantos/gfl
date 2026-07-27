@@ -12,11 +12,21 @@
                     <select id="portador_pagamento_id" name="portador_id" required>
                         <option value="">Selecione a conta de origem...</option>
                         {% for portador in opcoes_portadores %}
-                            <option value="{{ portador.id }}">{{ portador.nome }} (Saldo: R$ {{ "%.2f"|format(portador.saldo_inicial) }})</option>
+                            <option value="{{ portador.id }}">{{ portador.nome }}</option>
                         {% endfor %}
                     </select>
                 </div>
+                <div class="form-group-full" style="margin-top: 16px;">
+                    <label for="fatura_data_pagamento">Data do Pagamento</label>
+                    <input type="date" id="fatura_data_pagamento" name="data_pagamento" required>
+                </div>
                 <p style="margin-top: 16px; font-weight: bold;">Valor a Pagar: <span id="valor-fatura-pagamento">R$ 0,00</span></p>
+
+                <!-- Aviso sobre o desmembramento -->
+                <div style="margin-top: 16px; padding: 12px; background-color: #fff3cd; border-left: 4px solid #ffeeba; color: #856404; font-size: 14px; display: flex; align-items: center; gap: 10px; border-radius: 4px;">
+                    <span class="material-symbols-outlined">info</span>
+                    <span>Esta ação irá gerar lançamentos individuais no extrato da conta, mantendo o rateio original de cada compra.</span>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-secondary" onclick="fecharModal('modalPagarFatura')">Cancelar</button>

@@ -243,11 +243,22 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ABRIR MODAL DE EDIÇÃO DE LANÇAMENTO
+    // ABRIR MODAIS DE EDIÇÃO (EVENT DELEGATION)
     document.body.addEventListener('click', function(e) {
-        if (e.target.closest('.btn-editar-lancamento')) {
-            const id = e.target.closest('.btn-editar-lancamento').getAttribute('data-id');
+        // Botão para editar lançamento
+        const btnEditarLancamento = e.target.closest('.btn-editar-lancamento');
+        if (btnEditarLancamento) {
+            const id = btnEditarLancamento.getAttribute('data-id');
             prepararEdicao(id);
+            return;
+        }
+
+        // Botão para editar usuário
+        const btnEditarUsuario = e.target.closest('.btn-editar-usuario');
+        if (btnEditarUsuario) {
+            const id = btnEditarUsuario.getAttribute('data-id');
+            prepararEdicaoUsuario(id);
+            return;
         }
     });
 
@@ -325,6 +336,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupDeleteButtons('.btn-deletar-centro-custo', '/api/centroscusto', 'centro de custo');
     setupDeleteButtons('.btn-deletar-forma-pagamento', '/api/formaspagamento', 'forma de pagamento');
     setupDeleteButtons('.btn-deletar-fornecedor', '/api/fornecedores', 'fornecedor');
+    setupDeleteButtons('.btn-deletar-usuario', '/api/usuarios', 'usuário');
 
     // LÓGICA DO MODAL DE PORTADOR
     const formNovoPortador = document.getElementById('formNovoPortador');
@@ -525,7 +537,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         document.getElementById('total-fatura').textContent = `R$ ${data.total_fatura}`;
                         document.getElementById('resultado-fatura').style.display = 'block';
 
-                        const btnPagar = document.getElementById('btn-pagar-fatura');
+                        const btnPagar = document.getElementById('abrir-modal-pagar-fatura');
                         const statusPaga = document.getElementById('status-fatura-paga');
                         btnPagar.style.display = data.paga || data.despesas.length === 0 ? 'none' : 'flex';
                         statusPaga.style.display = data.paga ? 'flex' : 'none';
@@ -534,11 +546,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    const btnPagarFatura = document.getElementById('btn-pagar-fatura');
-    if (btnPagarFatura) {
-        btnPagarFatura.addEventListener('click', function() {
+    const abrirModalPagarFaturaBtn = document.getElementById('abrir-modal-pagar-fatura');
+    if (abrirModalPagarFaturaBtn) {
+        abrirModalPagarFaturaBtn.addEventListener('click', function() {
             const total = document.getElementById('total-fatura').textContent;
             document.getElementById('valor-fatura-pagamento').textContent = total;
+
+            // Adicionado para preencher a data atual no campo de data do pagamento
+            const dataPagamentoInput = document.getElementById('fatura_data_pagamento');
+            if (dataPagamentoInput) {
+                dataPagamentoInput.valueAsDate = new Date();
+            }
             abrirModal('modalPagarFatura');
         });
     }
@@ -547,10 +565,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (formPagarFatura) {
         formPagarFatura.addEventListener('submit', function(e) {
             e.preventDefault();
+            // Adicione um campo de data com id="fatura_data_pagamento" ao seu modal de pagamento
             const dados = {
                 cartao_id: document.getElementById('filtro_cartao_id').value,
                 periodo: document.getElementById('filtro_periodo').value,
-                portador_id: document.getElementById('portador_pagamento_id').value
+                portador_id: document.getElementById('portador_pagamento_id').value,
+                data_pagamento: document.getElementById('fatura_data_pagamento').value
             };
             fetch('/api/faturas/pagar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) })
             .then(res => res.json()).then(data => { alert(data.mensagem); if (data.status === 'sucesso') window.location.reload(); });

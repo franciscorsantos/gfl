@@ -1,141 +1,170 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="dashboard-header no-print" style="background-color: var(--cor-fundo-card); border: 1px solid var(--cor-borda);">
-    <div class="page-subheader">
-        <h2>Central de Extratos e Relatórios</h2>
-        <p style="color: var(--cor-texto-suave);">Filtre e visualize os dados da forma que precisar.</p>
+<div class="dashboard-header no-print" style="justify-content: space-between; align-items: center; background-color: var(--cor-fundo-card); border: 1px solid var(--cor-borda); margin-bottom: 24px;">
+    <div>
+        <h2>Extrato Dinâmico e Relatórios</h2>
+        <p style="color: var(--cor-texto-suave);">Analise suas movimentações com diferentes visões.</p>
     </div>
 </div>
 
-<!-- Painel de Filtros -->
-<form method="get" action="{{ url_for('extrato') }}" id="form-extrato" class="filter-panel no-print">
+<!-- Formulário de Filtro -->
+<form method="get" action="{{ url_for('extrato') }}" id="form-extrato" class="filter-form no-print" style="background-color: var(--cor-fundo-card); padding: 20px; border-radius: 12px; margin-bottom: 24px;">
     <div class="form-row">
         <div class="form-group">
             <label for="data_inicio">Data Início</label>
-            <input type="date" id="data_inicio" name="data_inicio" value="{{ data_inicio.strftime('%Y-%m-%d') if data_inicio else '' }}" required>
+            <input type="date" id="data_inicio" name="data_inicio" value="{{ data_inicio.strftime('%Y-%m-%d') if data_inicio else '' }}">
         </div>
         <div class="form-group">
             <label for="data_fim">Data Fim</label>
-            <input type="date" id="data_fim" name="data_fim" value="{{ data_fim.strftime('%Y-%m-%d') if data_fim else '' }}" required>
+            <input type="date" id="data_fim" name="data_fim" value="{{ data_fim.strftime('%Y-%m-%d') if data_fim else '' }}">
         </div>
         <div class="form-group">
-            <label for="portador_id">Conta (Portador)</label>
+            <label for="portador_id">Conta</label>
             <select id="portador_id" name="portador_id">
-                <option value="">Todas as Contas</option>
-                {% for p in opcoes_portadores %}
-                    <option value="{{ p.id }}" {% if request.args.get('portador_id') == p.id|string %}selected{% endif %}>{{ p.nome }}</option>
-                {% endfor %}
+                <option value="">Todas</option>
+                {% for p in opcoes_portadores %}<option value="{{ p.id }}" {% if request.args.get('portador_id') == p.id|string %}selected{% endif %}>{{ p.nome }}</option>{% endfor %}
             </select>
         </div>
     </div>
-    <div class="form-row">
+    <div class="form-row" style="margin-top: 16px;">
         <div class="form-group">
-            <label for="plano_conta_id">Categoria (Plano de Contas)</label>
+            <label for="plano_conta_id">Categoria</label>
             <select id="plano_conta_id" name="plano_conta_id">
-                <option value="">Todas as Categorias</option>
-                {% for pc in opcoes_planos %}
-                    <option value="{{ pc.id }}" {% if request.args.get('plano_conta_id') == pc.id|string %}selected{% endif %}>{{ pc.codigo }} - {{ pc.nome }}</option>
-                {% endfor %}
+                <option value="">Todas</option>
+                {% for p in opcoes_planos %}<option value="{{ p.id }}" {% if request.args.get('plano_conta_id') == p.id|string %}selected{% endif %}>{{ p.codigo }} - {{ p.nome }}</option>{% endfor %}
             </select>
         </div>
         <div class="form-group">
-            <label for="centro_custo_id">Centro de Custo (Frota)</label>
+            <label for="centro_custo_id">Centro de Custo</label>
             <select id="centro_custo_id" name="centro_custo_id">
-                <option value="">Todos os Centros</option>
-                {% for cc in opcoes_centros %}
-                    <option value="{{ cc.id }}" {% if request.args.get('centro_custo_id') == cc.id|string %}selected{% endif %}>{{ cc.nome }}</option>
-                {% endfor %}
+                <option value="">Todos</option>
+                {% for c in opcoes_centros %}<option value="{{ c.id }}" {% if request.args.get('centro_custo_id') == c.id|string %}selected{% endif %}>{{ c.nome }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="visao">Visão do Relatório</label>
+            <select id="visao" name="visao">
+                <option value="cronologico" {% if visao == 'cronologico' %}selected{% endif %}>Visão Cronológica</option>
+                <option value="resumo_categorias" {% if visao == 'resumo_categorias' %}selected{% endif %}>Resumo por Categoria</option>
+                <option value="resumo_centros" {% if visao == 'resumo_centros' %}selected{% endif %}>Resumo por Centro de Custo</option>
+                <option value="frota_detalhado" {% if visao == 'frota_detalhado' %}selected{% endif %}>Análise de Frota (Detalhado)</option>
             </select>
         </div>
     </div>
-    <div class="form-row" style="border-top: 1px solid var(--cor-borda); padding-top: 16px; margin-top: 16px;">
-        <div class="form-group">
-            <label for="visao">Tipo de Visão</label>
-            <select id="visao" name="visao">
-                <option value="cronologico" {% if visao == 'cronologico' %}selected{% endif %}>Extrato Cronológico Detalhado</option>
-                <option value="resumo_categorias" {% if visao == 'resumo_categorias' %}selected{% endif %}>Resumo por Categorias</option>
-                <option value="resumo_centros" {% if visao == 'resumo_centros' %}selected{% endif %}>Resumo por Centros de Custo</option>
-            </select>
-        </div>
-        <div class="form-group" style="flex-direction: row; align-items: flex-end; gap: 8px;">
+    <div class="form-row" style="margin-top: 16px;">
+        <div class="form-group" style="display: flex; align-items: flex-end; gap: 8px;">
             <button type="submit" class="btn-primary">Gerar Relatório</button>
-            <button type="button" onclick="window.print()" class="btn-secondary">Imprimir</button>
             <button type="button" id="btn-exportar-csv" class="btn-secondary">Exportar CSV</button>
+            <button type="button" onclick="window.print()" class="btn-secondary" title="Imprimir Relatório">
+                <span class="material-symbols-outlined" style="vertical-align: middle;">print</span>
+            </button>
         </div>
     </div>
 </form>
 
-<!-- Área de Resultados -->
-<div class="report-container">
-    <div class="table-responsive">
-        <table class="data-table">
-            {% if visao == 'cronologico' %}
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th>Conta</th>
-                        <th>Descrição</th>
-                        <th>Categoria</th>
-                        <th style="text-align: right;">Entrada</th>
-                        <th style="text-align: right;">Saída</th>
-                        {% if request.args.get('portador_id') and request.args.get('portador_id') != '' %}
-                        <th style="text-align: right;">Saldo Acumulado</th>
-                        {% endif %}
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for t in resultados %}
-                    <tr>
-                        <td>{{ t.data_vencimento.strftime('%d/%m/%Y') }}</td>
-                        <td>{{ t.portador.nome }}</td>
-                        <td>{{ t.descricao }}</td>
-                        <td>{{ t.categoria.nome if t.categoria else 'N/D' }}</td>
-                        <td style="text-align: right;" class="text-success">{% if t.tipo == 'Receita' %}R$ {{ "%.2f"|format(t.valor) }}{% endif %}</td>
-                        <td style="text-align: right;" class="text-danger">{% if t.tipo == 'Despesa' %}R$ {{ "%.2f"|format(t.valor) }}{% endif %}</td>
-                        {% if request.args.get('portador_id') and request.args.get('portador_id') != '' %}
-                        <td style="text-align: right; font-weight: 500;">R$ {{ "%.2f"|format(t.saldo_parcial) }}</td>
-                        {% endif %}
-                    </tr>
-                    {% else %}
-                    <tr class="table-empty-state"><td colspan="{{ 7 if request.args.get('portador_id') and request.args.get('portador_id') != '' else 6 }}">Nenhum lançamento encontrado para os filtros aplicados.</td></tr>
-                    {% endfor %}
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="4">TOTAIS DO PERÍODO</td>
-                        <td style="text-align: right;" class="text-success">R$ {{ "%.2f"|format(total_entradas) }}</td>
-                        <td style="text-align: right;" class="text-danger">R$ {{ "%.2f"|format(total_saidas) }}</td>
-                        {% if request.args.get('portador_id') and request.args.get('portador_id') != '' %}<td style="text-align: right;">R$ {{ "%.2f"|format(resultado_periodo) }}</td>{% endif %}
-                    </tr>
-                </tfoot>
-            {% elif visao == 'resumo_categorias' %}
-                {% include 'reports/resumo_categorias.html' %}
-            {% elif visao == 'resumo_centros' %}
-                {% include 'reports/resumo_centros.html' %}
-            {% endif %}
-        </table>
-    </div>
+<!-- Totais do Período -->
+<div class="summary-grid no-print" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+    <div class="summary-card"><div class="card-title">Total Entradas</div><div class="card-value text-success">R$ {{ "%.2f"|format(total_entradas) }}</div></div>
+    <div class="summary-card"><div class="card-title">Total Saídas</div><div class="card-value text-danger">R$ {{ "%.2f"|format(total_saidas) }}</div></div>
+    <div class="summary-card"><div class="card-title">Resultado do Período</div><div class="card-value {% if resultado_periodo < 0 %}text-danger{% endif %}">R$ {{ "%.2f"|format(resultado_periodo) }}</div></div>
 </div>
 
-<style>
-    .filter-panel {
-        background-color: var(--cor-fundo-card);
-        padding: 20px;
-        border-radius: 12px;
-        margin-bottom: 24px;
-        border: 1px solid var(--cor-borda);
-    }
-    .report-container {
-        background-color: var(--cor-fundo-card);
-        border-radius: 12px;
-        border: 1px solid var(--cor-borda);
-        overflow: hidden;
-    }
-    .data-table tfoot td {
-        font-weight: 700;
-        background-color: var(--cor-secundaria);
-        border-top: 2px solid var(--cor-borda);
-    }
-</style>
+<!-- Container dos Resultados -->
+<div class="report-container">
+    {% if visao == 'resumo_categorias' or visao == 'resumo_centros' %}
+    <div style="background-color: var(--cor-fundo-card); border-radius: 12px; border: 1px solid var(--cor-borda); overflow: hidden;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>{{ 'Categoria' if visao == 'resumo_categorias' else 'Centro de Custo' }}</th>
+                    <th style="text-align: right;">Entradas</th>
+                    <th style="text-align: right;">Saídas</th>
+                    <th style="text-align: right;">Resultado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in resultados %}
+                <tr>
+                    <td>{{ r.nome or ('Sem Categoria' if visao == 'resumo_categorias' else 'Não Alocado') }}</td>
+                    <td style="text-align: right; color: var(--cor-sucesso);">R$ {{ "%.2f"|format(r.entradas) }}</td>
+                    <td style="text-align: right; color: var(--cor-perigo);">- R$ {{ "%.2f"|format(r.saidas) }}</td>
+                    <td style="text-align: right; font-weight: bold;" class="{% if (r.entradas - r.saidas) < 0 %}text-danger{% endif %}">R$ {{ "%.2f"|format(r.entradas - r.saidas) }}</td>
+                </tr>
+                {% else %}
+                <tr class="table-empty-state"><td colspan="4">Nenhum dado encontrado para este resumo.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% elif visao == 'frota_detalhado' %}
+    <div class="report-container-single-table">
+        {% if resultados %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Veículo / Categoria da Despesa</th>
+                        <th class="column-value">Valor Gasto (R$)</th>
+                    </tr>
+                </thead>
+                {% for veiculo, dados in resultados.items() %}
+                <tbody class="nested-table-group">
+                    <tr class="vehicle-header-row">
+                        <th colspan="2">
+                            <span class="material-symbols-outlined fleet-report-icon">local_shipping</span>
+                            {{ veiculo }}
+                        </th>
+                    </tr>
+                    {% for categoria, valor in dados.items()|sort %}
+                        {% if categoria != 'Total_Veiculo' %}
+                        <tr class="category-row">
+                            <td class="fleet-report-category">{{ categoria }}</td>
+                            <td class="fleet-report-value column-value">R$ {{ "%.2f"|format(valor) }}</td>
+                        </tr>
+                        {% endif %}
+                    {% endfor %}
+                    <tr class="total-row">
+                        <td class="total-label">TOTAL DO VEÍCULO</td>
+                        <td class="fleet-report-value column-value total-value-highlight">R$ {{ "%.2f"|format(dados.Total_Veiculo) }}</td>
+                    </tr>
+                </tbody>
+                {% endfor %}
+            </table>
+        {% else %}
+            <div class="table-empty-state" style="background: white; padding: 32px; border-radius: 8px; text-align: center; grid-column: 1 / -1;">
+                <p>Nenhuma despesa de frota registrada para este período.</p>
+            </div>
+        {% endif %}
+    </div>
+    {% else %} {# visao == 'cronologico' #}
+    <div style="background-color: var(--cor-fundo-card); border-radius: 12px; border: 1px solid var(--cor-borda); overflow: hidden;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Descrição</th>
+                    <th>Categoria</th>
+                    <th>Valor</th>
+                    {% if request.args.get('portador_id') %}<th style="text-align: right;">Saldo Parcial</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in resultados %}
+                <tr>
+                    <td>{{ t.data_vencimento.strftime('%d/%m/%Y') }}</td>
+                    <td>{{ t.descricao }}</td>
+                    <td>{{ t.categoria.nome if t.categoria else 'N/A' }}</td>
+                    <td class="{% if t.tipo == 'Despesa' %}text-danger{% else %}text-success{% endif %}">
+                        {% if t.tipo == 'Despesa' %}-{% else %}+{% endif %} R$ {{ "%.2f"|format(t.valor) }}
+                    </td>
+                    {% if t.saldo_parcial is defined %}<td style="text-align: right;">R$ {{ "%.2f"|format(t.saldo_parcial) }}</td>{% endif %}
+                </tr>
+                {% else %}
+                <tr class="table-empty-state"><td colspan="{{ 5 if request.args.get('portador_id') else 4 }}">Nenhuma transação encontrada para o período.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
 {% endblock %}
