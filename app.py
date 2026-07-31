@@ -1701,11 +1701,15 @@ def relatorios():
     dre['lucro_liquido'] = dre['resultado_operacional'] - dre['impostos']['total']
 
     # --- 2. Análise de Frota (Centros de Custo) ---
-    despesas_por_centro = db.session.query(
+    despesas_por_centro_query = db.session.query(
         CentroCusto.nome, func.sum(Transacao.valor).label('total')
     ).join(Transacao, Transacao.centro_custo_id == CentroCusto.id).filter(
         Transacao.tipo == 'Despesa', Transacao.status == 'Realizado', Transacao.data_vencimento.between(data_inicio, data_fim)
     ).group_by(CentroCusto.nome).order_by(func.sum(Transacao.valor).desc()).all()
+
+    # Converte o resultado da query (que são objetos Row) para uma lista de dicionários.
+    # Isso é mais seguro para passar para templates, especialmente se os dados forem ser usados em JavaScript (gráficos).
+    despesas_por_centro = [{'nome': centro.nome, 'total': float(centro.total)} for centro in despesas_por_centro_query]
 
     # --- 3. Gráfico de Despesas por Categoria (Donut) ---
     dados_donut = {
