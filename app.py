@@ -1773,3 +1773,5 @@ def download_backup(filename):
 if __name__ == '__main__':
     # Roda o servidor em modo debug para facilitar o desenvolvimento
     app.run(debug=True)
+    
+    #Teste
