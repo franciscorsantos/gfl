@@ -1,0 +1,45 @@
+<!-- templates/components/modal_transferencia.html -->
+<div class="modal-overlay" id="modalTransferencia">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Transferência entre Contas</h3>
+            <button class="close-btn" onclick="fecharModal('modalTransferencia')">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <!-- O formulário aponta para a nova rota criada no app.py -->
+        <form id="formTransferencia" action="{{ url_for('transferencia_entre_contas') }}" method="POST">
+            <div class="modal-body">
+                <!-- Estrutura de grid para os selects ficarem lado a lado -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="conta_origem_id">De (Conta Origem)</label>
+                        <select name="conta_origem_id" id="conta_origem_id" required>
+                            <option value="" disabled selected>Selecione a conta de saída</option>
+                            {% for p in opcoes_portadores %}
+                            <option value="{{ p.id }}">{{ p.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="conta_destino_id">Para (Conta Destino)</label>
+                        <select name="conta_destino_id" id="conta_destino_id" required>
+                            <option value="" disabled selected>Selecione a conta de entrada</option>
+                            {% for p in opcoes_portadores %}
+                            <option value="{{ p.id }}">{{ p.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group-full">
+                    <label for="valor_transferencia">Valor (R$)</label>
+                    <input type="text" name="valor" id="valor_transferencia" placeholder="0,00" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="fecharModal('modalTransferencia')">Cancelar</button>
+                <button type="submit" class="btn-primary">Confirmar Transferência</button>
+            </div>
+        </form>
+    </div>
+</div>

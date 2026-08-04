@@ -326,6 +326,7 @@ input, select {
     padding: 10px 12px;
     border: 1px solid var(--cor-borda);
     border-radius: 6px;
+    width: 100%; /* Garante que inputs e selects ocupem 100% da largura do pai */
     font-family: var(--fonte-principal);
 }
 
@@ -619,7 +620,7 @@ input, select {
 }
 
 /* Garante que inputs, selects e botões tenham um alvo de toque mínimo */
-input, select, .btn-primary, .btn-secondary {
+input:not([type="radio"]):not([type="checkbox"]), select, .btn-primary, .btn-secondary {
     min-height: 44px;
 }
 /* A tag button é mais genérica, aplicamos apenas aos botões de ação para não quebrar ícones */

@@ -17,7 +17,7 @@
         <h4 class="section-title">1. Dados da Nota Fiscal / Documento</h4>
         
         <div class="form-row">
-            <div class="form-group" style="flex: 3;">
+            <div class="form-group" style="flex: 1.5;">
                 <label for="conta_fornecedor_id">Fornecedor</label>
                 <select id="conta_fornecedor_id" name="fornecedor_id" required>
                     <option value="">Selecione o fornecedor...</option>
@@ -26,13 +26,22 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="form-group" style="flex: 2;">
+            <div class="form-group" style="flex: 1.5;">
                 <label for="conta_plano_conta_id">Categoria da Despesa</label>
                 <select id="conta_plano_conta_id" name="plano_conta_id" required>
                     <option value="">Selecione a categoria...</option>
                     {% for p in opcoes_planos %}{% if p.tipo == 'Despesa' and '.' in p.codigo %}
                     <option value="{{ p.id }}">{{ p.codigo }} - {{ p.nome }}</option>
                     {% endif %}{% endfor %}
+                </select>
+            </div>
+            <div class="form-group" style="flex: 2;">
+                <label for="conta_centro_custo_id">Centro de Custo</label>
+                <select id="conta_centro_custo_id" name="centro_custo_id" required>
+                    <option value="" disabled selected>Selecione um centro de custo</option>
+                    {% for centro in opcoes_centros %}
+                        <option value="{{ centro.id }}">{{ centro.nome }}</option>
+                    {% endfor %}
                 </select>
             </div>
         </div>

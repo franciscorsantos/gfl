@@ -61,13 +61,18 @@
             </button>
         </div>
     </div>
+    <div class="form-group" style="align-items: center; flex-direction: row;">
+        <input type="checkbox" name="ignorar_transferencias" id="ignorar_transferencias" value="true" {% if ignorar_transferencias %}checked{% endif %}>
+        <label for="ignorar_transferencias" style="margin-bottom: 0;">Ocultar transferências entre contas</label>
+    </div>
+    
 </form>
 
 <!-- Totais do Período -->
 <div class="summary-grid no-print" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
-    <div class="summary-card"><div class="card-title">Total Entradas</div><div class="card-value text-success">R$ {{ "%.2f"|format(total_entradas) }}</div></div>
-    <div class="summary-card"><div class="card-title">Total Saídas</div><div class="card-value text-danger">R$ {{ "%.2f"|format(total_saidas) }}</div></div>
-    <div class="summary-card"><div class="card-title">Resultado do Período</div><div class="card-value {% if resultado_periodo < 0 %}text-danger{% endif %}">R$ {{ "%.2f"|format(resultado_periodo) }}</div></div>
+    <div class="summary-card"><div class="card-title">Total Entradas</div><div class="card-value text-success">R$ {{ total_entradas | br_currency }}</div></div>
+    <div class="summary-card"><div class="card-title">Total Saídas</div><div class="card-value text-danger">R$ {{ total_saidas | br_currency }}</div></div>
+    <div class="summary-card"><div class="card-title">Resultado do Período</div><div class="card-value {% if resultado_periodo < 0 %}text-danger{% endif %}">R$ {{ resultado_periodo | br_currency }}</div></div>
 </div>
 
 <!-- Container dos Resultados -->
@@ -87,9 +92,9 @@
                 {% for r in resultados %}
                 <tr>
                     <td>{{ r.nome or ('Sem Categoria' if visao == 'resumo_categorias' else 'Não Alocado') }}</td>
-                    <td style="text-align: right; color: var(--cor-sucesso);">R$ {{ "%.2f"|format(r.entradas) }}</td>
-                    <td style="text-align: right; color: var(--cor-perigo);">- R$ {{ "%.2f"|format(r.saidas) }}</td>
-                    <td style="text-align: right; font-weight: bold;" class="{% if (r.entradas - r.saidas) < 0 %}text-danger{% endif %}">R$ {{ "%.2f"|format(r.entradas - r.saidas) }}</td>
+                    <td style="text-align: right; color: var(--cor-sucesso);">R$ {{ r.entradas | br_currency }}</td>
+                    <td style="text-align: right; color: var(--cor-perigo);">- R$ {{ r.saidas | br_currency }}</td>
+                    <td style="text-align: right; font-weight: bold;" class="{% if (r.entradas - r.saidas) < 0 %}text-danger{% endif %}">R$ {{ (r.entradas - r.saidas) | br_currency }}</td>
                 </tr>
                 {% else %}
                 <tr class="table-empty-state"><td colspan="4">Nenhum dado encontrado para este resumo.</td></tr>
@@ -119,14 +124,14 @@
                         {% if categoria != 'Total_Veiculo' %}
                         <tr class="category-row">
                             <td class="fleet-report-category">{{ categoria }}</td>
-                            <td class="fleet-report-value column-value">R$ {{ "%.2f"|format(valor) }}</td>
+                            <td class="fleet-report-value column-value">R$ {{ valor | br_currency }}</td>
                         </tr>
                         {% endif %}
                     {% endfor %}
                     <tr class="total-row">
                         <td class="total-label">TOTAL DO VEÍCULO</td>
                         <td class="fleet-report-value column-value total-value-highlight">R$ {{ "%.2f"|format(dados.Total_Veiculo) }}</td>
-                    </tr>
+                    </tr> 
                 </tbody>
                 {% endfor %}
             </table>
@@ -155,9 +160,9 @@
                     <td>{{ t.descricao }}</td>
                     <td>{{ t.categoria.nome if t.categoria else 'N/A' }}</td>
                     <td class="{% if t.tipo == 'Despesa' %}text-danger{% else %}text-success{% endif %}">
-                        {% if t.tipo == 'Despesa' %}-{% else %}+{% endif %} R$ {{ "%.2f"|format(t.valor) }}
+                        {% if t.tipo == 'Despesa' %}-{% else %}+{% endif %} R$ {{ t.valor | br_currency }}
                     </td>
-                    {% if t.saldo_parcial is defined %}<td style="text-align: right;">R$ {{ "%.2f"|format(t.saldo_parcial) }}</td>{% endif %}
+                    {% if t.saldo_parcial is defined %}<td style="text-align: right;">R$ {{ t.saldo_parcial | br_currency }}</td>{% endif %}
                 </tr>
                 {% else %}
                 <tr class="table-empty-state"><td colspan="{{ 5 if request.args.get('portador_id') else 4 }}">Nenhuma transação encontrada para o período.</td></tr>

@@ -1,5 +1,5 @@
 # Arquivos de Bytecode e Cache do Python
-__pycache__/
+*__pycache__/
 *.py[cod]
 *$py.class
 
@@ -26,7 +26,7 @@ pip-wheel-metadata/
 *.egg
 
 # Pasta de instância do Flask (Contém o banco de dados SQLite e segredos)
-instance/
+instance/*.db
 
 # Ambientes virtuais
 .venv/

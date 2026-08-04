@@ -28,7 +28,7 @@
             
             <nav class="menu">
                 {% if current_user.perfil == 'Admin' %}
-                <a href="/" class="menu-item active">
+                <a href="/" class="menu-item {% if request.path == '/' %}active{% endif %}">
                     <span class="material-symbols-outlined">dashboard</span>
                     Painel Geral
                 </a>
@@ -55,11 +55,11 @@
                     <span class="material-symbols-outlined">request_quote</span>
                     Contas a Pagar
                 </a>
-                {% if current_user.perfil == 'Admin' %}
                 <a href="{{ url_for('cartoes') }}" class="menu-item">
                     <span class="material-symbols-outlined">credit_card</span>
                     Cartões de Crédito
                 </a>
+                {% if current_user.perfil == 'Admin' %}
                 <a href="{{ url_for('relatorios') }}" class="menu-item">
                     <span class="material-symbols-outlined">analytics</span>
                     Relatórios (BI)
@@ -116,6 +116,8 @@
 
     <!-- Inclusão dos Modais (Caso tenha o componente genérico de lançamento) -->
     {% include 'components/modal_lancamento.html' ignore missing %}
+    {% include 'components/modal_transferencia.html' %}
+
 
     <!-- Overlay para o menu mobile -->
     <div class="sidebar-overlay" id="sidebar-overlay"></div>

@@ -4,6 +4,7 @@ from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal, ROUND_HALF_UP
 import json
+from dotenv import load_dotenv
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 import os
 import shutil
@@ -18,14 +19,18 @@ from models import (
     Usuario
 )
 
+# Carrega as variáveis de ambiente do arquivo .env
+load_dotenv()
+
 # Inicializa a aplicação Flask
 app = Flask(__name__)
 
 # Configurações do Banco de Dados
-# Utilizando SQLite para desenvolvimento local. O arquivo será criado na pasta 'instance'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///gfl.db'
+# A URL de conexão é carregada da variável de ambiente DATABASE_URL
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'sua-chave-secreta-aqui' # Chave para segurança da sessão
+# A chave secreta é carregada da variável de ambiente SECRET_KEY
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 # --- CONFIGURAÇÃO DO AGENDADOR DE TAREFAS (APScheduler) ---
 class Config:
@@ -62,6 +67,24 @@ LOG_FILE = os.path.join(BASE_DIR, 'backup_log.txt')
 # Cria o diretório de backups se não existir
 if not os.path.exists(BACKUP_DIR):
     os.makedirs(BACKUP_DIR)
+
+# --- FILTRO JINJA2 PARA MOEDA BRASILEIRA ---
+@app.template_filter('br_currency')
+def format_brazilian_currency(value):
+    """
+    Formata um número (Decimal, float ou int) para o padrão de moeda brasileiro.
+    Ex: 1234.56 -> '1.234,56'
+    """
+    if value is None:
+        value = Decimal('0.0')
+    # Garante que o valor é um Decimal para arredondamento correto
+    valor_decimal = Decimal(value).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    # Formata com separador de milhar e vírgula decimal
+    # A biblioteca padrão locale pode ser complexa de configurar em servidores.
+    # Esta abordagem com replace é mais direta e independente de locale.
+    valor_formatado = f"{valor_decimal:,.2f}"
+    # Troca o padrão americano (1,234.56) pelo brasileiro (1.234,56)
+    return valor_formatado.replace(",", "X").replace(".", ",").replace("X", ".")
 
 
 # --- VARIÁVEIS GLOBAIS PARA OS TEMPLATES ---
@@ -169,6 +192,9 @@ def realizar_carga_inicial():
             PlanoConta(codigo="01.04", nome="Venda de Ativos", tipo="Receita"),
             PlanoConta(codigo="01.05", nome="Taxas Adicionais (TRT, TDE, Ad Valorem / GRIS)", tipo="Receita"),
             PlanoConta(codigo="01.06", nome="Receita de Indenizações / Seguros", tipo="Receita"),
+            
+            # Categoria para transferências
+            PlanoConta(codigo="01.99", nome="Transferência Recebida", tipo="Receita"),
 
             # ==========================================
             # 02 - DESPESAS E CUSTOS (Sintética Geral)
@@ -241,7 +267,10 @@ def realizar_carga_inicial():
             
             # Detalhamento Investimentos[cite: 5]
             PlanoConta(codigo="02.05.01", nome="Pgto. Emprestimos / Financiamentos", tipo="Despesa"),
-            PlanoConta(codigo="02.05.02", nome="Reserva de Emergência", tipo="Despesa")
+            PlanoConta(codigo="02.05.02", nome="Reserva de Emergência", tipo="Despesa"),
+
+            # Categoria para transferências
+            PlanoConta(codigo="02.99", nome="Transferência Enviada", tipo="Despesa"),
         ]
         
         # Adiciona todas as categorias de uma vez e salva no banco
@@ -319,8 +348,7 @@ def realizar_carga_inicial():
 
 # --- INICIALIZAÇÃO DO BANCO ---
 with app.app_context():
-    db.create_all() # Cria as tabelas fisicamente, caso não existam
-    realizar_carga_inicial() # Executa a nossa rotina de seed
+    db.create_all() # Cria as tabelas fisicamente, caso não existam. A carga inicial será feita manualmente via seed_db.py
 
 # --- TAREFA AGENDADA DE BACKUP ---
 @scheduler.task('cron', id='job_backup_diario', hour=3, minute=0)
@@ -408,6 +436,79 @@ def painel():
         transacoes=ultimas_transacoes,
         saldos_portadores=saldos_portadores # Nova variável
     )
+
+@app.route('/conta/transferencia', methods=['POST'])
+@login_required
+def transferencia_entre_contas():
+    """
+    Processa a transferência de valores entre dois portadores (contas).
+    Cria duas transações: uma despesa na origem e uma receita no destino.
+    """
+    dados = request.get_json()
+    try:
+        # 1. Captura e converte os dados
+        origem_id = int(dados['conta_origem_id'])
+        destino_id = int(dados['conta_destino_id'])
+        valor_str = dados['valor']
+ 
+        # 2. Valida se as contas são diferentes
+        if origem_id == destino_id:
+            return jsonify({'status': 'erro', 'mensagem': 'A conta de origem e destino não podem ser as mesmas.'}), 400
+ 
+        # 3. Trata e valida o valor monetário
+        valor_decimal = Decimal(valor_str.replace('.', '').replace(',', '.'))
+        if valor_decimal <= 0:
+            return jsonify({'status': 'erro', 'mensagem': 'O valor da transferência deve ser maior que zero.'}), 400
+ 
+        # 4. Busca os objetos necessários no banco de dados
+        portador_origem = Portador.query.get_or_404(origem_id)
+        portador_destino = Portador.query.get_or_404(destino_id)
+        categoria_saida = PlanoConta.query.filter_by(codigo='02.99').first()
+        categoria_entrada = PlanoConta.query.filter_by(codigo='01.99').first()
+        forma_pagto_transferencia = FormaPagamento.query.filter(FormaPagamento.nome.ilike('%transferência%')).first()
+ 
+        # Valida se as categorias e forma de pagamento existem
+        if not all([categoria_saida, categoria_entrada, forma_pagto_transferencia]):
+            return jsonify({'status': 'erro', 'mensagem': 'As categorias ou a forma de pagamento para transferência não estão configuradas no sistema.'}), 400
+ 
+        # 5. Cria as duas transações (saída e entrada)
+        hoje = date.today()
+ 
+        transacao_saida = Transacao(
+            tipo='Despesa',
+            descricao=f"Transferência enviada para {portador_destino.nome}",
+            status='Realizado',
+            valor=valor_decimal,
+            data_vencimento=hoje,
+            portador_id=origem_id,
+            plano_conta_id=categoria_saida.id,
+            forma_pagto_id=forma_pagto_transferencia.id,
+            usuario_id=current_user.id
+        )
+ 
+        transacao_entrada = Transacao(
+            tipo='Receita',
+            descricao=f"Transferência recebida de {portador_origem.nome}",
+            status='Realizado',
+            valor=valor_decimal,
+            data_vencimento=hoje,
+            portador_id=destino_id,
+            plano_conta_id=categoria_entrada.id,
+            forma_pagto_id=forma_pagto_transferencia.id,
+            usuario_id=current_user.id
+        )
+ 
+        # 6. Adiciona e comita na sessão de forma atômica
+        db.session.add_all([transacao_saida, transacao_entrada])
+        db.session.commit()
+        
+        detalhes = f"Transferiu R$ {valor_decimal:.2f} da conta '{portador_origem.nome}' para '{portador_destino.nome}'."
+        registrar_log('CRIAR', 'Transferência', detalhes)
+
+        return jsonify({'status': 'sucesso', 'mensagem': 'Transferência realizada com sucesso!'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'erro', 'mensagem': str(e)}), 500
 
 @app.route('/logout')
 @login_required
@@ -603,6 +704,7 @@ def extrato():
     plano_conta_id = request.args.get('plano_conta_id')
     centro_custo_id = request.args.get('centro_custo_id')
     visao = request.args.get('visao', 'cronologico')
+    ignorar_transferencias = request.args.get('ignorar_transferencias') == 'true'
 
     # --- 2. CONSTRUÇÃO DA QUERY BASE ---
     query = Transacao.query.filter(Transacao.status == 'Realizado')
@@ -622,6 +724,15 @@ def extrato():
         query = query.filter(Transacao.plano_conta_id == int(plano_conta_id))
     if centro_custo_id and centro_custo_id.isdigit():
         query = query.filter(Transacao.centro_custo_id == int(centro_custo_id))
+
+    # Filtro para ignorar transferências
+    if ignorar_transferencias:
+        # Busca os IDs das categorias de transferência para excluí-las da query
+        transfer_sent_cat = PlanoConta.query.filter_by(codigo='02.99').with_entities(PlanoConta.id).first()
+        transfer_received_cat = PlanoConta.query.filter_by(codigo='01.99').with_entities(PlanoConta.id).first()
+        transfer_cat_ids = [cat_id[0] for cat_id in [transfer_sent_cat, transfer_received_cat] if cat_id]
+        if transfer_cat_ids:
+            query = query.filter(Transacao.plano_conta_id.notin_(transfer_cat_ids))
 
     # --- 3. CÁLCULO DOS TOTALIZADORES DO PERÍODO ---
     subquery = query.subquery()
@@ -698,7 +809,8 @@ def extrato():
                            total_saidas=total_saidas,
                            resultado_periodo=resultado_periodo,
                            data_inicio=data_inicio,
-                           data_fim=data_fim)
+                           data_fim=data_fim,
+                           ignorar_transferencias=ignorar_transferencias)
 
 @app.route('/extrato/exportar_csv')
 @login_required
@@ -711,6 +823,7 @@ def extrato_exportar_csv():
     plano_conta_id = request.args.get('plano_conta_id')
     centro_custo_id = request.args.get('centro_custo_id')
     visao = request.args.get('visao', 'cronologico')
+    ignorar_transferencias = request.args.get('ignorar_transferencias') == 'true'
 
     query = Transacao.query.filter(Transacao.status == 'Realizado')
     try:
@@ -723,6 +836,14 @@ def extrato_exportar_csv():
     if portador_id and portador_id.isdigit(): query = query.filter(Transacao.portador_id == int(portador_id))
     if plano_conta_id and plano_conta_id.isdigit(): query = query.filter(Transacao.plano_conta_id == int(plano_conta_id))
     if centro_custo_id and centro_custo_id.isdigit(): query = query.filter(Transacao.centro_custo_id == int(centro_custo_id))
+
+    # Filtro para ignorar transferências (lógica idêntica à da rota principal)
+    if ignorar_transferencias:
+        transfer_sent_cat = PlanoConta.query.filter_by(codigo='02.99').with_entities(PlanoConta.id).first()
+        transfer_received_cat = PlanoConta.query.filter_by(codigo='01.99').with_entities(PlanoConta.id).first()
+        transfer_cat_ids = [cat_id[0] for cat_id in [transfer_sent_cat, transfer_received_cat] if cat_id]
+        if transfer_cat_ids:
+            query = query.filter(Transacao.plano_conta_id.notin_(transfer_cat_ids))
 
     # --- 2. GERAÇÃO DO CSV ---
     si = io.StringIO()
@@ -771,8 +892,6 @@ def get_fatura_atual_periodo(dia_fechamento):
 @app.route('/cartoes')
 @login_required
 def cartoes():
-    if current_user.perfil == 'Operador':
-        return redirect(url_for('painel'))
     todos_cartoes = CartaoCredito.query.order_by(CartaoCredito.nome).all()
     cartoes_info = []
 
@@ -830,6 +949,7 @@ def usuarios():
 def criar_cartao():
     if current_user.perfil != 'Admin':
         return jsonify({'status': 'erro', 'mensagem': 'Acesso negado.'}), 403
+
     dados = request.get_json()
 
     try:
@@ -953,6 +1073,8 @@ def criar_portador():
 def criar_plano_conta():
     dados = request.get_json()
     try:
+        if current_user.perfil != 'Admin':
+            return jsonify({'status': 'erro', 'mensagem': 'Acesso negado.'}), 403
         novo_plano = PlanoConta(
             codigo=dados['codigo'],
             nome=dados['nome'],
@@ -974,6 +1096,8 @@ def criar_plano_conta():
 def criar_centro_custo():
     dados = request.get_json()
     try:
+        if current_user.perfil != 'Admin':
+            return jsonify({'status': 'erro', 'mensagem': 'Acesso negado.'}), 403
         novo_centro = CentroCusto(
             nome=dados['nome'],
             tipo=dados['tipo']
@@ -993,6 +1117,8 @@ def criar_centro_custo():
 def criar_forma_pagamento():
     dados = request.get_json()
     try:
+        if current_user.perfil != 'Admin':
+            return jsonify({'status': 'erro', 'mensagem': 'Acesso negado.'}), 403
         nova_forma = FormaPagamento(nome=dados['nome'])
         db.session.add(nova_forma)
         db.session.commit()
@@ -1012,6 +1138,7 @@ def criar_conta_pagar():
         nova_conta = ContaPagar(
             fornecedor_id=int(dados['fornecedor_id']),
             plano_conta_id=int(dados['plano_conta_id']),
+            centro_custo_id=int(dados['centro_custo_id']),
             descricao=dados['descricao'],
             tipo_documento=dados['tipo_documento'],
             numero_documento=dados['numero_documento'],
@@ -1230,9 +1357,6 @@ def get_fornecedor(id):
 @app.route('/api/lancamentos/<int:id>', methods=['PUT'])
 @login_required
 def editar_lancamento(id):
-    if current_user.perfil != 'Admin':
-        return jsonify({'status': 'erro', 'mensagem': 'Acesso negado.'}), 403
-
     dados = request.get_json()
     try:
         t = Transacao.query.get_or_404(id)
@@ -1266,9 +1390,6 @@ def editar_lancamento(id):
 @app.route('/api/lancamentos/<int:id>/status', methods=['PUT'])
 @login_required
 def atualizar_status_lancamento(id):
-    if current_user.perfil != 'Admin':
-        return jsonify({'status': 'erro', 'mensagem': 'Acesso negado.'}), 403
-
     dados = request.get_json()
     novo_status = dados.get('status')
 
@@ -1504,9 +1625,6 @@ def deletar_usuario(id):
 @app.route('/api/faturas/pagar', methods=['POST'])
 @login_required
 def pagar_fatura():
-    if current_user.perfil != 'Admin':
-        return jsonify({'status': 'erro', 'mensagem': 'Acesso negado.'}), 403
-
     dados = request.get_json()
     try:
         cartao_id = int(dados['cartao_id'])
@@ -1566,8 +1684,6 @@ def pagar_fatura():
 @app.route('/api/parcelas/pagar/<int:id>', methods=['POST'])
 @login_required
 def pagar_parcela(id):
-    if current_user.perfil != 'Admin':
-        return jsonify({'status': 'erro', 'mensagem': 'Acesso negado.'}), 403
 
     dados = request.get_json()
     try:
@@ -1589,6 +1705,7 @@ def pagar_parcela(id):
             data_vencimento=data_pagamento, # Data em que o pagamento foi efetuado
             portador_id=portador_id,
             plano_conta_id=parcela.conta_pagar.plano_conta_id,
+            centro_custo_id=parcela.conta_pagar.centro_custo_id,
             forma_pagto_id=parcela.forma_pagto_id,
             usuario_id=current_user.id
         )

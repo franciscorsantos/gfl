@@ -9,6 +9,10 @@
     <button class="btn-primary" onclick="abrirModal('modalNovoLancamento')">
         + Novo Lançamento
     </button>
+    <button class="btn-secondary" onclick="abrirModal('modalTransferencia')">
+        <span class="material-symbols-outlined" style="vertical-align: bottom; margin-right: 4px;">swap_horiz</span>
+        Transferência
+    </button>
 </div>
 
 <!-- Formulário de Filtro -->
@@ -63,7 +67,7 @@
                 <th>Conta / Pagamento</th>
                 <th class="cell-center">Status</th>
                 <th>Valor</th>
-                {% if current_user.perfil == 'Admin' %}
+                {% if current_user.perfil in ['Admin', 'Operador'] %}
                 <th class="cell-center">Ações</th>
                 {% endif %}
             </tr>
@@ -117,23 +121,25 @@
                 
                 <!-- Valor -->
                 <td style="font-weight: 600;" class="{% if t.tipo == 'Despesa' %}cor-despesa{% else %}cor-receita{% endif %}">
-                    {% if t.tipo == 'Despesa' %}-{% else %}+{% endif %} R$ {{ "%.2f"|format(t.valor) }}
+                    {% if t.tipo == 'Despesa' %}-{% else %}+{% endif %} R$ {{ t.valor | br_currency }}
                 </td>
 
-                {% if current_user.perfil == 'Admin' %}
+                {% if current_user.perfil in ['Admin', 'Operador'] %}
                 <td class="cell-center">
                     <button class="action-icon btn-editar-lancamento" data-id="{{ t.id }}" title="Editar Lançamento">
                         <span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
                     </button>
+                    {% if current_user.perfil == 'Admin' %}
                     <button class="action-icon btn-deletar-lancamento" data-id="{{ t.id }}" title="Excluir Lançamento">
                         <span class="material-symbols-outlined" style="font-size: 18px; color: var(--cor-perigo);">delete</span>
                     </button>
+                    {% endif %}
                 </td>
                 {% endif %}
             </tr>
             {% else %}
             <tr class="table-empty-state">
-                <td colspan="{{ 7 if current_user.perfil == 'Admin' else 6 }}">Nenhum lançamento encontrado no histórico.</td>
+                <td colspan="{{ 7 if current_user.perfil in ['Admin', 'Operador'] else 6 }}">Nenhum lançamento encontrado no histórico.</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -173,4 +179,6 @@
 
 <!-- Inclusão do Modal -->
 {% include 'components/modal_lancamento.html' %}
+{% include 'components/modal_transferencia.html' %}
+
 {% endblock %}

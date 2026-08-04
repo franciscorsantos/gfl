@@ -14,6 +14,11 @@
     <button class="btn-primary" onclick="abrirModal('modalNovoLancamento')">
         + Novo Lançamento
     </button>
+    <button class="btn-secondary" onclick="abrirModal('modalTransferencia')">
+        <span class="material-symbols-outlined" style="vertical-align: bottom; margin-right: 4px;">swap_horiz</span>
+        Transferência
+    </button>
+
 </div>
 
 <!-- Cartões de Resumo -->
@@ -28,7 +33,7 @@
         
         <!-- CORREÇÃO: Uso de class ao invés de style para a cor dinâmica do saldo -->
         <h2 class="{% if saldo_atual < 0 %}saldo-negativo{% else %}saldo-positivo{% endif %}" style="font-size: 28px;">
-            R$ {{ "%.2f"|format(saldo_atual) }}
+            R$ {{ saldo_atual | br_currency }}
         </h2>
     </div>
 
@@ -39,7 +44,7 @@
             <span class="material-symbols-outlined" style="color: var(--cor-sucesso);">trending_up</span>
         </div>
         <h2 style="font-size: 28px; color: var(--cor-sucesso);">
-            R$ {{ "%.2f"|format(total_receitas) }}
+            R$ {{ total_receitas | br_currency }}
         </h2>
     </div>
 
@@ -50,7 +55,7 @@
             <span class="material-symbols-outlined" style="color: var(--cor-perigo);">trending_down</span>
         </div>
         <h2 style="font-size: 28px; color: var(--cor-perigo);">
-            R$ {{ "%.2f"|format(total_despesas) }}
+            R$ {{ total_despesas | br_currency }}
         </h2>
     </div>
 </div>
@@ -70,7 +75,7 @@
                     </span>
                 </div>
                 <h2 class="{% if portador.saldo_final < 0 %}saldo-negativo{% else %}saldo-positivo{% endif %}" style="font-size: 28px;">
-                    R$ {{ "%.2f"|format(portador.saldo_final) }}
+                    R$ {{ portador.saldo_final | br_currency }}
                 </h2>
                 <p style="font-size: 12px; color: var(--cor-texto-suave); margin-top: 4px;">{{ portador.tipo }}</p>
             </div>
@@ -115,7 +120,7 @@
             </td>
             
             <td style="padding: 16px 8px; font-weight: 600;" class="{% if t.tipo == 'Despesa' %}saldo-negativo{% else %}saldo-positivo{% endif %}">
-                {% if t.tipo == 'Despesa' %}-{% else %}+{% endif %} R$ {{ "%.2f"|format(t.valor) }}
+                {% if t.tipo == 'Despesa' %}-{% else %}+{% endif %} R$ {{ t.valor | br_currency }}
             </td>
 
             {% if current_user.perfil == 'Admin' %}

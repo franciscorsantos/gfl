@@ -285,6 +285,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // INICIALIZAÇÃO DAS MÁSCARAS DE MOEDA
     inicializarMascaraMoeda(document.getElementById('valor')); 
     inicializarMascaraMoeda(document.getElementById('valor_total_despesa')); 
+    inicializarMascaraMoeda(document.getElementById('valor_transferencia'));
 
     // ALTERAR STATUS DO LANÇAMENTO (Previsto/Realizado)
     const statusToggles = document.querySelectorAll('.status-toggle');
@@ -458,6 +459,32 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 alert(data.mensagem);
                 if (data.status === 'sucesso') window.location.reload();
+            });
+        });
+    }
+
+    // LÓGICA DO MODAL DE TRANSFERÊNCIA
+    const formTransferencia = document.getElementById('formTransferencia');
+    if (formTransferencia) {
+        formTransferencia.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(formTransferencia);
+            const dados = Object.fromEntries(formData.entries());
+
+            fetch(formTransferencia.action, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dados)
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.mensagem);
+                if (data.status === 'sucesso') {
+                    window.location.reload();
+                }
+            })
+            .catch(err => {
+                alert('Erro de comunicação ao tentar realizar a transferência.');
             });
         });
     }

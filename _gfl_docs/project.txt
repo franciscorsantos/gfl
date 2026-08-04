@@ -1,33 +1,43 @@
 gfl_sistema/
 │
 ├── app.py                 # Arquivo principal (Rotas do Flask e inicialização)
-├── models.py              # Classes do banco de dados (SQLAlchemy)
+├── models.py              # Definição dos modelos de dados (SQLAlchemy ORM)
+├── seed_db.py             # Script para popular o banco com dados iniciais
 ├── requirements.txt       # Lista de dependências (Flask, SQLAlchemy, etc.)
+├── .env                   # Arquivo para variáveis de ambiente (não versionado)
 │
 ├── instance/              # Pasta gerada pelo Flask (onde o SQLite ficará no dev)
 │   └── gfl.db             # Nosso banco de dados local
 │
+├── backups/               # Diretório para armazenar backups do banco de dados
+│   └── backup_gfl_*.db    # Exemplo de arquivo de backup
+│
 ├── static/                # Arquivos estáticos (Front-end Vanilla)
 │   ├── css/
 │   │   ├── style.css      # Estilos globais (cores, cards, botões)
-│   │   └── print.css      # Regras específicas para impressão (@media print)
 │   ├── js/
 │   │   └── main.js        # Lógica de interface (modais, interações sem refresh)
-│   └── img/               # Logos, ícones e assets visuais
 │
 └── templates/             # Arquivos HTML com Jinja2
     ├── base.html          # O layout mestre (Menu lateral, cabeçalho)
+    ├── login.html         # Tela de autenticação de usuário
     ├── painel.html        # Dashboard principal (Saldos e alertas)
-    ├── extrato.html       # Tabela de fluxo de caixa com filtros
     ├── lancamentos.html   # Tela de operações financeiras
     ├── cadastros.html     # Abas de gestão (Portadores, Plano de Contas, etc.)
+    ├── contas_a_pagar.html # Formulário para lançamento de novas contas a pagar
+    ├── gerenciar_contas_a_pagar.html # Tela de gestão e baixa de parcelas
+    ├── cartoes.html       # Gestão de cartões de crédito e faturas
+    ├── extrato.html       # Extrato dinâmico com filtros avançados
+    ├── relatorios.html    # Relatórios gerenciais (DRE, Análise de Custos)
+    ├── usuarios.html      # Tela para gestão de usuários do sistema
+    ├── logs.html          # Visualizador de logs de auditoria
+    ├── backups.html       # Interface para gerenciamento de backups
     │
     └── components/        # Pequenos pedaços de HTML reutilizáveis
         ├── modal_lancamento.html
         └── modal_transferencia.html
-
-
----------- Flask e o SQLAlchemy ----------
-pip install Flask Flask-SQLAlchemy
-
-
+        ├── modal_portador.html
+        ├── modal_plano_conta.html
+        ├── modal_centro_custo.html
+        ├── modal_forma_pagamento.html
+        └── modal_fornecedor.html

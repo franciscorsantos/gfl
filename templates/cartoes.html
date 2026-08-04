@@ -19,7 +19,9 @@
 <div id="aba-resumo" class="tab-content active">
     <div class="content-header">
         <h3>Visão Geral</h3>
+        {% if current_user.perfil == 'Admin' %}
         <button class="btn-primary" onclick="abrirModal('modalNovoCartao')">+ Novo Cartão</button>
+        {% endif %}
     </div>
 
     <div class="credit-card-grid">
@@ -33,6 +35,7 @@
                     <span class="card-label">Fatura Atual ({{ item.mes_fatura_atual }}/{{ item.ano_fatura_atual }})</span>
                     <span class="card-main-value">R$ {{ "%.2f"|format(item.total_fatura_atual) }}</span>
                 </div>
+                {% if current_user.perfil == 'Admin' %}
                 <div class="card-footer">
                     <div class="limit-info">
                         <span class="card-label">Limite Disponível</span>
@@ -45,12 +48,15 @@
                         Total: R$ {{ "%.2f"|format(item.cartao.limite) }}
                     </span>
                 </div>
+                {% endif %}
             </div>
         {% else %}
             <div class="empty-state-card">
                 <span class="material-symbols-outlined" style="font-size: 48px;">credit_card_off</span>
                 <p>Nenhum cartão de crédito cadastrado.</p>
+                {% if current_user.perfil == 'Admin' %}
                 <button class="btn-primary" onclick="abrirModal('modalNovoCartao')">Cadastrar Primeiro Cartão</button>
+                {% endif %}
             </div>
         {% endfor %}
     </div>

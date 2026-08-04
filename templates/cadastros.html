@@ -43,7 +43,7 @@
             <tr>
                 <td>{{ p.nome }}</td>
                 <td>{{ p.tipo }}</td>
-                <td>R$ {{ "%.2f"|format(p.saldo_inicial) }}</td>
+                <td>R$ {{ p.saldo_inicial | br_currency }}</td>
                 {% if current_user.perfil == 'Admin' %}
                 <td class="cell-center">
                     <button class="action-icon" onclick="prepararEdicaoPortador({{ p.id }})" title="Editar"><span class="material-symbols-outlined" style="font-size: 18px;">edit</span></button>

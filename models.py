@@ -188,8 +188,10 @@ class ContaPagar(db.Model):
     data_emissao = db.Column(db.Date, nullable=False)
     fornecedor_id = db.Column(db.Integer, db.ForeignKey('fornecedor.id'), nullable=False)
     plano_conta_id = db.Column(db.Integer, db.ForeignKey('plano_conta.id'), nullable=False)
+    centro_custo_id = db.Column(db.Integer, db.ForeignKey('centro_custo.id'), nullable=False)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
     parcelas = db.relationship('ParcelaConta', backref='conta_pagar', lazy=True, cascade="all, delete-orphan")
+    centro_custo = db.relationship('CentroCusto', backref='contas_a_pagar', lazy=True)
 
 class ParcelaConta(db.Model):
     id = db.Column(db.Integer, primary_key=True)
