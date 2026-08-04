@@ -174,178 +174,6 @@ def gerar_backup():
             _log_backup(f"FALHA ao gerar backup: {str(e)}")
             return False, f"Falha ao gerar backup: {str(e)}"
 
-
-# --- FUNÇÃO DE CARGA INICIAL (SEED) ---
-def realizar_carga_inicial():
-    # Verifica se a tabela está vazia. Se estiver, cria o plano padrão hierárquico.
-    if PlanoConta.query.first() is None:
-        categorias = [
-            # ==========================================
-            # 01 - RECEITAS (Sintética)
-            # ==========================================
-            PlanoConta(codigo="01", nome="Receitas", tipo="Receita"),
-            
-            # Detalhamento de Receitas[cite: 5]
-            PlanoConta(codigo="01.01", nome="Fretes / Transportes", tipo="Receita"),
-            PlanoConta(codigo="01.02", nome="Redespacho", tipo="Receita"),
-            PlanoConta(codigo="01.03", nome="Armazenagem", tipo="Receita"),
-            PlanoConta(codigo="01.04", nome="Venda de Ativos", tipo="Receita"),
-            PlanoConta(codigo="01.05", nome="Taxas Adicionais (TRT, TDE, Ad Valorem / GRIS)", tipo="Receita"),
-            PlanoConta(codigo="01.06", nome="Receita de Indenizações / Seguros", tipo="Receita"),
-            
-            # Categoria para transferências
-            PlanoConta(codigo="01.99", nome="Transferência Recebida", tipo="Receita"),
-
-            # ==========================================
-            # 02 - DESPESAS E CUSTOS (Sintética Geral)
-            # ==========================================
-            PlanoConta(codigo="02", nome="Despesas e Custos", tipo="Despesa"),
-
-            # --- 02.01 CUSTOS VARIÁVEIS (VEÍCULO) (Sintética) ---
-            PlanoConta(codigo="02.01", nome="Custos Variáveis (Veículo)", tipo="Despesa"),
-            
-            # Detalhamento Custos Variáveis[cite: 5]
-            PlanoConta(codigo="02.01.01", nome="Combustível", tipo="Despesa"),
-            PlanoConta(codigo="02.01.02", nome="Manutenção Preventiva", tipo="Despesa"),
-            PlanoConta(codigo="02.01.03", nome="Manutenção Corretiva", tipo="Despesa"),
-            PlanoConta(codigo="02.01.04", nome="Pneus", tipo="Despesa"),
-            PlanoConta(codigo="02.01.05", nome="Pedágio / Estacionamento", tipo="Despesa"),
-            PlanoConta(codigo="02.01.06", nome="Sinistro / Franquia", tipo="Despesa"),
-            PlanoConta(codigo="02.01.07", nome="Diárias / Alimentação Motorista", tipo="Despesa"),
-            PlanoConta(codigo="02.01.08", nome="Custo com Agregados / Terceiros", tipo="Despesa"),
-            PlanoConta(codigo="02.01.09", nome="Óleo Lubrificante / Arla 32", tipo="Despesa"),
-            PlanoConta(codigo="02.01.10", nome="Lavagem e Higienização da Frota", tipo="Despesa"),
-            PlanoConta(codigo="02.01.11", nome="Chapa / Diárias de Carga e Descarga", tipo="Despesa"),
-
-            # --- 02.02 CUSTOS FIXOS (OPERACIONAL) (Sintética) ---
-            PlanoConta(codigo="02.02", nome="Custos Fixos (Operacional)", tipo="Despesa"),
-            
-            # Detalhamento Custos Fixos[cite: 5]
-            PlanoConta(codigo="02.02.01", nome="Folha de Pagamento", tipo="Despesa"),
-            PlanoConta(codigo="02.02.02", nome="Encargos sobre a Folha", tipo="Despesa"),
-            PlanoConta(codigo="02.02.03", nome="Seguros", tipo="Despesa"),
-            PlanoConta(codigo="02.02.04", nome="Monitoramento / Rastreamento", tipo="Despesa"),
-            PlanoConta(codigo="02.02.05", nome="Documentação Frota", tipo="Despesa"),
-            PlanoConta(codigo="02.02.06", nome="Aluguel de Frota", tipo="Despesa"),
-            PlanoConta(codigo="02.02.07", nome="Depreciação da Frota", tipo="Despesa"),
-            PlanoConta(codigo="02.02.08", nome="Exames Médicos / Toxicológicos / Treinamentos", tipo="Despesa"),
-            PlanoConta(codigo="02.02.09", nome="EPIs e Uniformes Operacionais", tipo="Despesa"),
-
-            # --- 02.03 DESPESAS ADMINISTRATIVAS (Sintética) ---
-            PlanoConta(codigo="02.03", nome="Despesas Administrativas", tipo="Despesa"),
-            
-            # Detalhamento Despesas Administrativas[cite: 5]
-            PlanoConta(codigo="02.03.01", nome="Energia Elétrica", tipo="Despesa"),
-            PlanoConta(codigo="02.03.02", nome="Água e Esgoto", tipo="Despesa"),
-            PlanoConta(codigo="02.03.03", nome="Internet", tipo="Despesa"),
-            PlanoConta(codigo="02.03.04", nome="Telefonia Fixa / Móvel", tipo="Despesa"),
-            PlanoConta(codigo="02.03.05", nome="Softwares e Sistemas", tipo="Despesa"),
-            PlanoConta(codigo="02.03.06", nome="Contabilidade", tipo="Despesa"),
-            PlanoConta(codigo="02.03.07", nome="Tarifas Bancárias", tipo="Despesa"),
-            PlanoConta(codigo="02.03.08", nome="Pro-Labore", tipo="Despesa"),
-            PlanoConta(codigo="02.03.09", nome="Encargos sobre o Pro-Labore", tipo="Despesa"),
-            PlanoConta(codigo="02.03.10", nome="Material de Escritorio", tipo="Despesa"),
-            PlanoConta(codigo="02.03.11", nome="Material de Limpeza", tipo="Despesa"),
-            PlanoConta(codigo="02.03.12", nome="Brindes / Patricionios", tipo="Despesa"),
-            PlanoConta(codigo="02.03.13", nome="Outras Despesas Administrativas", tipo="Despesa"),
-            PlanoConta(codigo="02.03.14", nome="Salários Administrativos", tipo="Despesa"),
-            PlanoConta(codigo="02.03.15", nome="Comissões sobre Vendas / Fretes", tipo="Despesa"),
-            PlanoConta(codigo="02.03.16", nome="Marketing e Publicidade", tipo="Despesa"),
-            PlanoConta(codigo="02.03.17", nome="Viagens e Representação Comercial", tipo="Despesa"),
-            PlanoConta(codigo="02.03.18", nome="Licenças e Alvarás Administrativos", tipo="Despesa"),
-
-            # --- 02.04 IMPOSTOS (Sintética) ---
-            PlanoConta(codigo="02.04", nome="Impostos", tipo="Despesa"),
-            
-            # Detalhamento Impostos[cite: 5]
-            PlanoConta(codigo="02.04.01", nome="Simples Nacional", tipo="Despesa"),
-            PlanoConta(codigo="02.04.02", nome="ICMS / ST ou Diferencial de Alíquota (Difal)", tipo="Despesa"),
-            PlanoConta(codigo="02.04.03", nome="Taxas Regulatórias (ANTT / SEST SENAT)", tipo="Despesa"),
-
-            # --- 02.05 INVESTIMENTOS / OUTRAS SAÍDAS (Sintética) ---
-            PlanoConta(codigo="02.05", nome="Investimentos / Outras Saídas", tipo="Despesa"),
-            
-            # Detalhamento Investimentos[cite: 5]
-            PlanoConta(codigo="02.05.01", nome="Pgto. Emprestimos / Financiamentos", tipo="Despesa"),
-            PlanoConta(codigo="02.05.02", nome="Reserva de Emergência", tipo="Despesa"),
-
-            # Categoria para transferências
-            PlanoConta(codigo="02.99", nome="Transferência Enviada", tipo="Despesa"),
-        ]
-        
-        # Adiciona todas as categorias de uma vez e salva no banco
-        db.session.add_all(categorias)
-        db.session.commit()
-        print("✅ Carga inicial do Plano de Contas Logístico realizada com sucesso!")
-
-    # ==========================================
-    # CARGA INICIAL: FORMAS DE PAGAMENTO
-    # ==========================================
-    if FormaPagamento.query.first() is None:
-        formas = [
-            FormaPagamento(nome="Pix"),
-            FormaPagamento(nome="Boleto Bancário"),
-            FormaPagamento(nome="Cartão de Crédito"),
-            FormaPagamento(nome="Cartão de Débito"),
-            FormaPagamento(nome="Transferência (TED / DOC)"),
-            FormaPagamento(nome="Dinheiro em Espécie"),
-        ]
-        
-        db.session.add_all(formas)
-        db.session.commit()
-        print("✅ Carga inicial de Formas de Pagamento realizada com sucesso!")
-
-    # ==========================================
-    # CARGA INICIAL: FORNECEDORES
-    # ==========================================
-    if Fornecedor.query.first() is None:
-        fornecedores = [
-            Fornecedor(nome="Posto Shell - Rodovia", cnpj_cpf="11.222.333/0001-44", status="Ativo"),
-            Fornecedor(nome="Pneumar Pneus e Peças", cnpj_cpf="44.555.666/0001-77", status="Ativo"),
-            Fornecedor(nome="Oficina Diesel Rápido", cnpj_cpf="77.888.999/0001-00", status="Ativo"),
-            Fornecedor(nome="Fornecedor Inativo Teste", cnpj_cpf="00.000.000/0001-00", status="Inativo"),
-        ]
-        db.session.add_all(fornecedores)
-        db.session.commit()
-        print("✅ Carga inicial de Fornecedores realizada com sucesso!")
-        
-# ==========================================
-    # CARGA INICIAL: CENTROS DE CUSTO (FROTA/ROTAS)
-    # ==========================================
-    if CentroCusto.query.first() is None:
-        centros = [
-            # Veículos Físicos
-            CentroCusto(nome="Caminhão Scania R450 (Placa ABC-1234)", tipo="Veículo"),
-            CentroCusto(nome="Caminhão Volvo FH540 (Placa XYZ-9876)", tipo="Veículo"),
-            CentroCusto(nome="Veículo Leve / Apoio (Fiorino)", tipo="Veículo"),
-            
-            # Controle por Rotas
-            CentroCusto(nome="Operação - Rota Caxias/MA x Teresina/PI", tipo="Rota"),
-            CentroCusto(nome="Operação - Rota Caxias/MA x São Luís/MA", tipo="Rota"),
-            
-            # Despesas Gerais
-            CentroCusto(nome="Administrativo - Meliá Transportes", tipo="Geral/Administrativo")
-        ]
-        
-        db.session.add_all(centros)
-        db.session.commit()
-        print("✅ Carga inicial de Centros de Custo realizada com sucesso!")
-
-    # ==========================================
-    # CARGA INICIAL: USUÁRIO ADMIN
-    # ==========================================
-    if Usuario.query.first() is None:
-        admin_user = Usuario(
-            nome='Administrador',
-            email='admin@gfl.com',
-            perfil='Admin',
-            status='Ativo'
-        )
-        admin_user.set_senha('admin123')
-        db.session.add(admin_user)
-        db.session.commit()
-        print("✅ Usuário Administrador padrão criado com sucesso! (E-mail: admin@gfl.com, Senha: admin123)")
-
 # --- INICIALIZAÇÃO DO BANCO ---
 with app.app_context():
     db.create_all() # Cria as tabelas fisicamente, caso não existam. A carga inicial será feita manualmente via seed_db.py
@@ -649,8 +477,18 @@ def gestao_contas_a_pagar():
         query = query.filter(ParcelaConta.status == 'Pago')
     # 'todas' não precisa de filtro de status extra
 
-    # Distinct para não repetir as Contas a Pagar se múltiplas parcelas baterem no filtro
-    contas = query.distinct().order_by(Fornecedor.nome, ContaPagar.data_emissao.desc()).all()
+    # Distinct para não repetir as Contas a Pagar se múltiplas parcelas baterem no filtro.
+    # A exceção `sqlalchemy.exc.ProgrammingError` ocorre no PostgreSQL porque, ao usar `SELECT DISTINCT`,
+    # todas as colunas no `ORDER BY` devem também estar na lista do `SELECT`.
+    # A query original seleciona `DISTINCT conta_pagar.*` mas tenta ordenar por `fornecedor.nome`, que não está na seleção.
+    # A correção é adicionar `Fornecedor.nome` à seleção e depois extrair apenas o objeto `ContaPagar` do resultado.
+    results = query.add_columns(Fornecedor.nome)\
+                   .distinct()\
+                   .order_by(Fornecedor.nome, ContaPagar.data_emissao.desc())\
+                   .all()
+
+    # Extrai o primeiro elemento de cada tupla do resultado (que é o objeto ContaPagar)
+    contas = [result[0] for result in results]
 
     # Pós-processamento para adicionar dados dinâmicos
     contas_info = []
@@ -1784,7 +1622,8 @@ def relatorios():
     ).join(Transacao, Transacao.plano_conta_id == PlanoConta.id)\
      .filter(
         Transacao.status == 'Realizado',
-        Transacao.data_vencimento.between(data_inicio, data_fim)
+        Transacao.data_vencimento.between(data_inicio, data_fim),
+        PlanoConta.codigo.notin_(['01.99', '02.99']) # Exclui transferências do DRE
      ).group_by(PlanoConta.codigo, PlanoConta.nome).all()
 
     # Estrutura do DRE
@@ -1820,8 +1659,13 @@ def relatorios():
     # --- 2. Análise de Frota (Centros de Custo) ---
     despesas_por_centro_query = db.session.query(
         CentroCusto.nome, func.sum(Transacao.valor).label('total')
-    ).join(Transacao, Transacao.centro_custo_id == CentroCusto.id).filter(
-        Transacao.tipo == 'Despesa', Transacao.status == 'Realizado', Transacao.data_vencimento.between(data_inicio, data_fim)
+    ).join(Transacao, Transacao.centro_custo_id == CentroCusto.id)\
+     .join(PlanoConta, Transacao.plano_conta_id == PlanoConta.id)\
+     .filter(
+        Transacao.tipo == 'Despesa', 
+        Transacao.status == 'Realizado', 
+        Transacao.data_vencimento.between(data_inicio, data_fim),
+        PlanoConta.codigo != '02.99' # Exclui despesas de transferência da análise
     ).group_by(CentroCusto.nome).order_by(func.sum(Transacao.valor).desc()).all()
 
     # Converte o resultado da query (que são objetos Row) para uma lista de dicionários.
