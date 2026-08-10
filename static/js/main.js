@@ -642,7 +642,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="form-row">
                         <div class="form-group"><label>Qtd. Parcelas</label><input type="number" id="qtd_parcelas_fixo" value="2" min="2"></div>
                         <div class="form-group"><label>Data do 1º Venc.</label><input type="date" id="data_1_venc_fixo" required></div>
-                        <div class="form-group"><label>Intervalo (dias)</label><input type="number" id="intervalo_dias_fixo" value="30"></div>
+                        <div class="form-group"><label>Intervalo (meses)</label><input type="number" id="intervalo_meses_fixo" value="1" min="1"></div>
                         <div class="form-group"><label>Forma de Pagamento</label><select id="forma_pagto_padrao_fixo" required>${getFormasPagamentoOptions()}</select></div>
                     </div>
                     <button type="button" id="btn_gerar_parcelas_fixo" class="btn-secondary" style="margin-top: 16px;">Gerar Prévia</button>
@@ -673,23 +673,37 @@ document.addEventListener('DOMContentLoaded', function() {
             const valorTotal = parseFloat(valorTotalInput.value.replace(/\./g, '').replace(',', '.')) || 0;
             const qtd = parseInt(document.getElementById('qtd_parcelas_fixo').value);
             const data1Str = document.getElementById('data_1_venc_fixo').value;
-            const intervalo = parseInt(document.getElementById('intervalo_dias_fixo').value);
+            const intervaloMeses = parseInt(document.getElementById('intervalo_meses_fixo').value);
             const formaID = document.getElementById('forma_pagto_padrao_fixo').value;
             const formaTexto = document.getElementById('forma_pagto_padrao_fixo').options[document.getElementById('forma_pagto_padrao_fixo').selectedIndex].text;
 
-            if (!valorTotal || !qtd || !data1Str || !intervalo || !formaID) { alert('Preencha todos os campos para gerar as parcelas.'); return; }
+            if (!valorTotal || !qtd || !data1Str || !intervaloMeses || !formaID) { alert('Preencha todos os campos para gerar as parcelas.'); return; }
 
             const valorParcela = (valorTotal / qtd).toFixed(2);
-            let dataVenc = new Date(data1Str + 'T12:00:00');
+            const dataBase = new Date(data1Str + 'T12:00:00');
+            const diaVencimentoOriginal = dataBase.getDate();
+
             let tabelaHTML = `<table class="data-table parcela-preview-table"><thead><tr><th>#</th><th>Vencimento</th><th>Valor (R$)</th><th>Forma</th></tr></thead><tbody>`;
-            for (let i = 1; i <= qtd; i++) {
-                tabelaHTML += `<tr class="parcela-row" data-numero="${i}" data-valor="${valorParcela}" data-vencimento="${dataVenc.toISOString().split('T')[0]}" data-forma="${formaID}">
-                    <td>${i}</td>
+            for (let i = 0; i < qtd; i++) {
+                // Cria uma nova data a partir da data base para cada parcela
+                let dataVenc = new Date(dataBase.getFullYear(), dataBase.getMonth(), dataBase.getDate());
+                
+                // Adiciona os meses para a parcela atual
+                dataVenc.setMonth(dataBase.getMonth() + (i * intervaloMeses));
+
+                // Se o dia mudou (ex: de 31 para 1), ajusta para o último dia do mês correto.
+                // Isso acontece quando o mês de destino tem menos dias que o dia de vencimento original.
+                if (dataVenc.getDate() !== diaVencimentoOriginal) {
+                    // Voltamos a data para o dia 0 do mês ATUAL, que é o último dia do mês anterior (o correto).
+                    dataVenc.setDate(0);
+                }
+
+                tabelaHTML += `<tr class="parcela-row" data-numero="${i + 1}" data-valor="${valorParcela}" data-vencimento="${dataVenc.toISOString().split('T')[0]}" data-forma="${formaID}">
+                    <td>${i + 1}</td>
                     <td>${dataVenc.toLocaleDateString('pt-BR')}</td>
                     <td>${valorParcela.replace('.', ',')}</td>
                     <td>${formaTexto}</td>
                 </tr>`;
-                dataVenc.setDate(dataVenc.getDate() + intervalo);
             }
             tabelaHTML += `</tbody></table>`;
             document.getElementById('preview_parcelas_container').innerHTML = tabelaHTML;

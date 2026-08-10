@@ -1107,6 +1107,29 @@ def deletar_forma_pagamento(id):
     db.session.commit()
     return jsonify({'status': 'sucesso', 'mensagem': 'Forma de pagamento excluída!'})
 
+@app.route('/api/fornecedores', methods=['POST'])
+@login_required
+def criar_fornecedor():
+    if current_user.perfil != 'Admin':
+        return jsonify({'status': 'erro', 'mensagem': 'Acesso negado.'}), 403
+
+    dados = request.get_json()
+    try:
+        novo_fornecedor = Fornecedor(
+            nome=dados['nome'],
+            cnpj_cpf=dados.get('cnpj_cpf'),
+            status=dados['status']
+        )
+        db.session.add(novo_fornecedor)
+        db.session.commit()
+
+        detalhes = f"Criou o fornecedor '{novo_fornecedor.nome}'."
+        registrar_log('CRIAR', 'Cadastros (Fornecedores)', detalhes)
+        return jsonify({'status': 'sucesso', 'mensagem': 'Fornecedor cadastrado com sucesso!'}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'erro', 'mensagem': str(e)}), 400
+
 @app.route('/api/fornecedores/<int:id>', methods=['DELETE'])
 @login_required
 def deletar_fornecedor(id):
