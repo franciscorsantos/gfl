@@ -11,6 +11,9 @@
     <!-- Ícones do Google Material Symbols -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
 
+    <!-- Tom Select CSS (para selects pesquisáveis) -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+
     <!-- Chart.js para gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -122,6 +125,9 @@
     <!-- Overlay para o menu mobile -->
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     
+    <!-- Tom Select JS (para selects pesquisáveis) -->
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+
     <!-- ÚNICA chamada para o arquivo JavaScript -->
     <script src="{{ url_for('static', filename='js/main.js') }}?v=4"></script>
 </body>

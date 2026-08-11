@@ -17,8 +17,8 @@
             <div class="form-row">
                 <div class="form-group" style="flex: 2;">
                     <label for="conta_fornecedor_id">Fornecedor</label>
-                    <select name="fornecedor_id" id="conta_fornecedor_id" required>
-                        <option value="" disabled selected>Selecione um fornecedor</option>
+                    <select name="fornecedor_id" id="conta_fornecedor_id" class="searchable-select" placeholder="Selecione ou busque um fornecedor..." required>
+                        <option value="">Selecione um fornecedor</option>
                         {% for f in opcoes_fornecedores %}
                         <option value="{{ f.id }}">{{ f.nome }}</option>
                         {% endfor %}
@@ -59,8 +59,8 @@
             <div class="form-row">
                 <div class="form-group">
                     <label for="conta_plano_conta_id">Categoria (Plano de Contas)</label>
-                    <select name="plano_conta_id" id="conta_plano_conta_id" required>
-                        <option value="" disabled selected>Selecione a categoria</option>
+                    <select name="plano_conta_id" id="conta_plano_conta_id" class="searchable-select" placeholder="Selecione ou busque a categoria..." required>
+                        <option value="">Selecione a categoria</option>
                         {% for p in opcoes_planos %}
                             {% if p.tipo == 'Despesa' %}
                             <option value="{{ p.id }}">{{ p.codigo }} - {{ p.nome }}</option>
@@ -70,8 +70,8 @@
                 </div>
                 <div class="form-group">
                     <label for="conta_centro_custo_id">Centro de Custo</label>
-                    <select name="centro_custo_id" id="conta_centro_custo_id" required>
-                        <option value="" disabled selected>Selecione o centro de custo</option>
+                    <select name="centro_custo_id" id="conta_centro_custo_id" class="searchable-select" placeholder="Selecione o centro de custo..." required>
+                        <option value="">Selecione o centro de custo</option>
                         {% for c in opcoes_centros %}
                         <option value="{{ c.id }}">{{ c.nome }}</option>
                         {% endfor %}

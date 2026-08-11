@@ -71,7 +71,7 @@
         <div class="form-row">
             <div class="form-group">
                 <label for="cartao_id_despesa">Cartão de Crédito</label>
-                <select id="cartao_id_despesa" name="cartao_id" required>
+                <select id="cartao_id_despesa" name="cartao_id" class="searchable-select" placeholder="Selecione um cartão..." required>
                     <option value="">Selecione um cartão...</option>
                     {% for cartao in opcoes_cartoes %}
                         <option value="{{ cartao.id }}">{{ cartao.nome }}</option>
@@ -90,7 +90,7 @@
         <div class="form-row">
             <div class="form-group">
                 <label for="plano_conta_id_despesa">Categoria (Plano de Contas)</label>
-                <select id="plano_conta_id_despesa" name="plano_conta_id" required>
+                <select id="plano_conta_id_despesa" name="plano_conta_id" class="searchable-select" placeholder="Selecione uma categoria..." required>
                     <option value="">Selecione uma categoria...</option>
                     {% for plano in opcoes_planos %}{% if 'Despesa' in plano.tipo and '.' in plano.codigo %}
                         <option value="{{ plano.id }}">{{ plano.codigo }} - {{ plano.nome }}</option>
@@ -99,7 +99,7 @@
             </div>
             <div class="form-group">
                 <label for="centro_custo_id_despesa">Centro de Custo</label>
-                <select id="centro_custo_id_despesa" name="centro_custo_id" required>
+                <select id="centro_custo_id_despesa" name="centro_custo_id" class="searchable-select" placeholder="Selecione um centro de custo..." required>
                     <option value="">Selecione um centro de custo...</option>
                     {% for centro in opcoes_centros %}
                         <option value="{{ centro.id }}">{{ centro.nome }}</option>
@@ -133,7 +133,7 @@
         <div class="form-row">
             <div class="form-group">
                 <label for="filtro_cartao_id">Cartão</label>
-                <select id="filtro_cartao_id">
+                <select id="filtro_cartao_id" class="searchable-select" placeholder="Selecione um cartão">
                     <option value="">Selecione um cartão</option>
                     {% for cartao in opcoes_cartoes %}
                         <option value="{{ cartao.id }}">{{ cartao.nome }}</option>
@@ -142,7 +142,7 @@
             </div>
             <div class="form-group">
                 <label for="filtro_periodo">Fatura (Mês/Ano)</label>
-                <select id="filtro_periodo">
+                <select id="filtro_periodo" class="searchable-select" placeholder="Selecione um período">
                     <option value="">Selecione um período</option>
                     {% for mes in meses_filtro %}
                         <option value="{{ mes.valor }}">{{ mes.texto }}</option>

@@ -960,4 +960,19 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // ===================================================================
+    // INICIALIZAÇÃO DO TOM SELECT PARA CAMPOS PESQUISÁVEIS
+    // ===================================================================
+    /**
+     * Itera sobre todos os elementos com a classe 'searchable-select'
+     * e os transforma em caixas de seleção pesquisáveis com Tom Select.
+     */
+    document.querySelectorAll('.searchable-select').forEach((el)=>{
+        new TomSelect(el,{
+            create: false, // Impede que o usuário crie novas opções
+            sortField: { field: "text", direction: "asc" } // Ordena os resultados da busca alfabeticamente
+        });
+    });
+
 });

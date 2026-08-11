@@ -21,8 +21,8 @@
         </div>
         <div class="form-group">
             <label for="portador_id">Conta</label>
-            <select id="portador_id" name="portador_id">
-                <option value="">Todas</option>
+            <select id="portador_id" name="portador_id" class="searchable-select" placeholder="Selecione ou busque uma conta...">
+                <option value="">Todas as contas</option>
                 {% for p in opcoes_portadores %}<option value="{{ p.id }}" {% if request.args.get('portador_id') == p.id|string %}selected{% endif %}>{{ p.nome }}</option>{% endfor %}
             </select>
         </div>
@@ -30,21 +30,21 @@
     <div class="form-row" style="margin-top: 16px;">
         <div class="form-group">
             <label for="plano_conta_id">Categoria</label>
-            <select id="plano_conta_id" name="plano_conta_id">
-                <option value="">Todas</option>
+            <select id="plano_conta_id" name="plano_conta_id" class="searchable-select" placeholder="Selecione ou busque uma categoria...">
+                <option value="">Todas as categorias</option>
                 {% for p in opcoes_planos %}<option value="{{ p.id }}" {% if request.args.get('plano_conta_id') == p.id|string %}selected{% endif %}>{{ p.codigo }} - {{ p.nome }}</option>{% endfor %}
             </select>
         </div>
         <div class="form-group">
             <label for="centro_custo_id">Centro de Custo</label>
-            <select id="centro_custo_id" name="centro_custo_id">
-                <option value="">Todos</option>
+            <select id="centro_custo_id" name="centro_custo_id" class="searchable-select" placeholder="Selecione ou busque um centro de custo...">
+                <option value="">Todos os centros de custo</option>
                 {% for c in opcoes_centros %}<option value="{{ c.id }}" {% if request.args.get('centro_custo_id') == c.id|string %}selected{% endif %}>{{ c.nome }}</option>{% endfor %}
             </select>
         </div>
         <div class="form-group">
             <label for="visao">Visão do Relatório</label>
-            <select id="visao" name="visao">
+            <select id="visao" name="visao" class="searchable-select">
                 <option value="cronologico" {% if visao == 'cronologico' %}selected{% endif %}>Visão Cronológica</option>
                 <option value="resumo_categorias" {% if visao == 'resumo_categorias' %}selected{% endif %}>Resumo por Categoria</option>
                 <option value="resumo_centros" {% if visao == 'resumo_centros' %}selected{% endif %}>Resumo por Centro de Custo</option>

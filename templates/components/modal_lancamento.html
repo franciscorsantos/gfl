@@ -35,8 +35,8 @@
             <div class="form-row">
                 <div class="form-group">
                     <label for="portador_id">Portador (Conta/Caixa)</label>
-                    <select id="portador_id" name="portador_id" required>
-                        <option value="">Selecione de onde sai/entra...</option>
+                    <select id="portador_id" name="portador_id" class="searchable-select" placeholder="Selecione de onde sai/entra..." required>
+                        <option value=""></option>
                         {% for p in opcoes_portadores %}
                         <option value="{{ p.id }}">{{ p.nome }}</option>
                         {% endfor %}
@@ -44,8 +44,8 @@
                 </div>
                 <div class="form-group">
                     <label for="forma_pagto_id">Forma de Pagamento</label>
-                    <select id="forma_pagto_id" name="forma_pagto_id" required>
-                        <option value="">Como foi pago?</option>
+                    <select id="forma_pagto_id" name="forma_pagto_id" class="searchable-select" placeholder="Como foi pago?" required>
+                        <option value=""></option>
                         {% for f in opcoes_formas %}
                         <option value="{{ f.id }}">{{ f.nome }}</option>
                         {% endfor %}
@@ -55,8 +55,8 @@
 
             <div class="form-group-full">
                 <label for="plano_conta_id">Plano de Contas (Categoria)</label>
-                <select id="plano_conta_id" name="plano_conta_id" required>
-                    <option value="">Selecione a categoria...</option>
+                <select id="plano_conta_id" name="plano_conta_id" class="searchable-select" placeholder="Selecione a categoria..." required>
+                    <option value=""></option>
                     {% for pc in opcoes_planos %}
                     <option value="{{ pc.id }}">{{ pc.codigo }} - {{ pc.nome }}</option>
                     {% endfor %}
@@ -65,8 +65,8 @@
 
             <div class="form-group-full">
                 <label for="centro_custo_id">Centro de Custo (Frota)</label>
-                <select id="centro_custo_id" name="centro_custo_id">
-                    <option value="">Geral / Administrativo (Nenhum)</option>
+                <select id="centro_custo_id" name="centro_custo_id" class="searchable-select" placeholder="Geral / Administrativo (Nenhum)">
+                    <option value=""></option>
                     {% for c in opcoes_centros %}
                     <option value="{{ c.id }}">{{ c.nome }}</option>
                     {% endfor %}
