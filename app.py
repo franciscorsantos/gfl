@@ -443,56 +443,75 @@ def cadastros():
 @app.route('/gestao_contas_a_pagar')
 @login_required
 def gestao_contas_a_pagar():
-    # Inicia a query base
-    query = ContaPagar.query.join(Fornecedor).join(ParcelaConta)
+    hoje = date.today()
 
-    # --- FILTROS ---
+    # Subconsulta para encontrar a data da próxima parcela pendente para cada conta.
+    proximo_vencimento_subquery = db.session.query(
+        ParcelaConta.conta_pagar_id,
+        func.min(ParcelaConta.data_vencimento).label('proximo_vencimento')
+    ).filter(ParcelaConta.status == 'Pendente').group_by(ParcelaConta.conta_pagar_id).subquery()
+
+    # Query base, juntando ContaPagar com Fornecedor e a subconsulta de próximo vencimento.
+    query = db.session.query(
+        ContaPagar,
+        proximo_vencimento_subquery.c.proximo_vencimento
+    ).join(Fornecedor).outerjoin(
+        proximo_vencimento_subquery,
+        ContaPagar.id == proximo_vencimento_subquery.c.conta_pagar_id
+    )
+
+    # --- CAPTURA DOS FILTROS ---
     mes_ano_str = request.args.get('mes_ano')
-    status_filtro = request.args.get('status', 'pendentes') # Default to 'pendentes'
+    status_filtro = request.args.get('status', 'pendentes')
     fornecedor_id_str = request.args.get('fornecedor_id')
+    busca_str = request.args.get('busca')
 
-    # Filtro de Mês/Ano
+    # --- APLICAÇÃO DOS FILTROS ---
+
+    # Filtro de busca textual por descrição da conta ou nome do fornecedor
+    if busca_str:
+        from sqlalchemy import or_
+        query = query.filter(
+            or_(
+                ContaPagar.descricao.ilike(f'%{busca_str}%'),
+                Fornecedor.nome.ilike(f'%{busca_str}%')
+            )
+        )
+
+    # Filtro de Mês/Ano (baseado no próximo vencimento)
     if mes_ano_str:
         try:
             ano, mes = map(int, mes_ano_str.split('-'))
-            query = query.filter(func.extract('year', ParcelaConta.data_vencimento) == ano)\
-                         .filter(func.extract('month', ParcelaConta.data_vencimento) == mes)
+            query = query.filter(func.extract('year', proximo_vencimento_subquery.c.proximo_vencimento) == ano)\
+                         .filter(func.extract('month', proximo_vencimento_subquery.c.proximo_vencimento) == mes)
         except (ValueError, TypeError):
             pass
 
     # Filtro de Fornecedor
     if fornecedor_id_str:
         try:
-            query = query.filter(ContaPagar.fornecedor_id == int(fornecedor_id_str))
+            query = query.filter(ContaPagar.fornecedor_id == int(fornecedor_id_str)) # O join já foi feito
         except (ValueError, TypeError):
             pass
             
-    # Filtro de Status (mais complexo)
-    hoje = date.today()
+    # Filtro de Status (baseado na existência e data do próximo vencimento)
     if status_filtro == 'pendentes':
-        query = query.filter(ParcelaConta.status == 'Pendente', ParcelaConta.data_vencimento >= hoje)
+        query = query.filter(proximo_vencimento_subquery.c.proximo_vencimento >= hoje)
     elif status_filtro == 'atrasadas':
-        query = query.filter(ParcelaConta.status == 'Pendente', ParcelaConta.data_vencimento < hoje)
+        query = query.filter(proximo_vencimento_subquery.c.proximo_vencimento < hoje)
     elif status_filtro == 'pagas':
-        query = query.filter(ParcelaConta.status == 'Pago')
-    # 'todas' não precisa de filtro de status extra
+        query = query.filter(proximo_vencimento_subquery.c.proximo_vencimento == None)
 
-    # Distinct para não repetir as Contas a Pagar se múltiplas parcelas baterem no filtro.
-    # A exceção `sqlalchemy.exc.ProgrammingError` ocorre no PostgreSQL porque, ao usar `SELECT DISTINCT`,
-    # todas as colunas no `ORDER BY` devem também estar na lista do `SELECT`.
-    # A query original seleciona `DISTINCT conta_pagar.*` mas tenta ordenar por `fornecedor.nome`, que não está na seleção.
-    # A correção é adicionar `Fornecedor.nome` à seleção e depois extrair apenas o objeto `ContaPagar` do resultado.
-    results = query.add_columns(Fornecedor.nome)\
-                   .distinct()\
-                   .order_by(Fornecedor.nome, ContaPagar.data_emissao.desc())\
-                   .all()
+    # Ordena pelo próximo vencimento ascendente (contas que vencem antes aparecem primeiro).
+    # Contas pagas (NULL) são colocadas no final.
+    results = query.order_by(
+        func.coalesce(proximo_vencimento_subquery.c.proximo_vencimento, date(9999, 12, 31)).asc()
+    ).all()
 
-    # Extrai o primeiro elemento de cada tupla do resultado (que é o objeto ContaPagar)
-    contas = [result[0] for result in results]
-
-    # Pós-processamento para adicionar dados dinâmicos
+    # Pós-processamento para adicionar dados dinâmicos a cada objeto
     contas_info = []
-    for conta in contas:
+    for conta, proximo_vencimento in results:
+        conta.proximo_vencimento = proximo_vencimento  # Anexa a data calculada ao objeto
         total_parcelas = len(conta.parcelas)
         parcelas_pagas = 0
         
@@ -504,7 +523,7 @@ def gestao_contas_a_pagar():
                 p.status_dinamico = 'Atrasado'
             else:
                 p.status_dinamico = 'Pendente'
-        
+
         conta.progresso_pagas = parcelas_pagas
         conta.progresso_total = total_parcelas
         contas_info.append(conta)
@@ -519,7 +538,8 @@ def gestao_contas_a_pagar():
     return render_template(
         'gerenciar_contas_a_pagar.html',
         contas=contas_info,
-        meses_filtro=meses_filtro
+        meses_filtro=meses_filtro,
+        hoje=hoje  # Envia a data atual para o template
     )
 
 @app.route('/contas_a_pagar')

@@ -27,11 +27,11 @@
         </div>
         <div class="form-group">
             <label for="fornecedor_id">Fornecedor</label>
-            <select id="fornecedor_id" name="fornecedor_id">
+            <select id="fornecedor_id" name="fornecedor_id" class="searchable-select" placeholder="Todos os fornecedores...">
                 <option value="">Todos os Fornecedores</option>
                 {% for f in opcoes_fornecedores %}
                     <option value="{{ f.id }}" {% if request.args.get('fornecedor_id') == f.id|string %}selected{% endif %}>
-                        {{ f.nome }}
+                        {{ f.nome }} 
                     </option>
                 {% endfor %}
             </select>
@@ -44,6 +44,10 @@
                 <option value="pagas" {% if request.args.get('status') == 'pagas' %}selected{% endif %}>Pagas</option>
                 <option value="todas" {% if request.args.get('status') == 'todas' %}selected{% endif %}>Todas</option>
             </select>
+        </div>
+        <div class="form-group">
+            <label for="busca">Busca Rápida</label>
+            <input type="text" id="busca" name="busca" placeholder="Descrição ou fornecedor..." value="{{ request.args.get('busca', '') }}">
         </div>
         <div class="form-group" style="display: flex; align-items: flex-end; gap: 8px;">
             <button type="submit" class="btn-primary">Filtrar</button>
@@ -59,8 +63,8 @@
             <tr>
                 <th style="width: 30px;"></th>
                 <th>Fornecedor / Descrição</th>
-                <th>Documento</th>
-                <th>Emissão</th>
+                <th>Documento / Nº</th>
+                <th>Próximo Vencimento</th>
                 <th style="text-align: right;">Valor Total</th>
                 <th class="cell-center">Progresso</th>
             </tr>
@@ -77,7 +81,19 @@
                     {{ conta.tipo_documento or 'N/D' }}<br>
                     <span class="text-suave">{{ conta.numero_documento or 'N/A' }}</span>
                 </td>
-                <td class="text-suave">{{ conta.data_emissao.strftime('%d/%m/%Y') }}</td>
+                <td>
+                    {% if conta.proximo_vencimento %}
+                        {% if conta.proximo_vencimento < hoje %}
+                            <span class="status-badge status-atrasado">{{ conta.proximo_vencimento.strftime('%d/%m/%Y') }}</span>
+                        {% elif conta.proximo_vencimento == hoje %}
+                            <span class="status-badge status-vence-hoje">⚠️ VENCE HOJE</span>
+                        {% else %}
+                            <span class="text-suave">{{ conta.proximo_vencimento.strftime('%d/%m/%Y') }}</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="status-badge status-pago">✔ Todas Pagas</span>
+                    {% endif %}
+                </td>
                 <td style="text-align: right; font-weight: 600;">R$ {{ "%.2f"|format(conta.valor_total) }}</td>
                 <td class="cell-center">
                     <span class="badge" style="background-color: var(--cor-texto-suave);">{{ conta.progresso_pagas }} / {{ conta.progresso_total }} pagas</span>
@@ -106,11 +122,11 @@
                                     <td class="text-suave">{{ p.forma_pagamento.nome }}</td>
                                     <td class="cell-center">
                                         {% if p.status_dinamico == 'Pago' %}
-                                            <span class="status-badge status-pago">🟢 Pago</span>
+                                            <span class="status-badge status-pago">Pago</span>
                                         {% elif p.status_dinamico == 'Atrasado' %}
-                                            <span class="status-badge status-atrasado">🔴 Atrasado</span>
+                                            <span class="status-badge status-atrasado">Atrasado</span>
                                         {% else %}
-                                            <span class="status-badge status-pendente">🟡 Pendente</span>
+                                            <span class="status-badge status-pendente">Pendente</span>
                                         {% endif %}
                                     </td>
                                     <td class="cell-center">
@@ -157,7 +173,12 @@
     .parcelas-subtable table { width: 100%; border-collapse: collapse; }
     .parcelas-subtable th { font-size: 11px; text-transform: uppercase; color: var(--cor-texto-suave); padding: 8px; border-bottom: 1px solid var(--cor-borda); text-align: left; }
     .parcelas-subtable td { padding: 12px 8px; border-bottom: 1px solid var(--cor-secundaria); }
-    .status-badge { font-size: 12px; font-weight: 600; }
+    
+    .status-badge { font-size: 11px; font-weight: 700; padding: 5px 10px; border-radius: 12px; text-transform: uppercase; display: inline-block; }
+    .status-pago { background-color: #dcfce7; color: #166534; }
+    .status-atrasado { background-color: #fee2e2; color: #991b1b; }
+    .status-pendente { background-color: #fef9c3; color: #854d0e; }
+    .status-vence-hoje { background-color: #ffedd5; color: #9a3412; }
     .btn-pagar-parcela { background-color: var(--cor-sucesso); color: white; border: none; border-radius: 4px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
 </style>
 {% endblock %}

@@ -626,6 +626,49 @@ document.addEventListener('DOMContentLoaded', function() {
             return '<option value="">Carregando...</option>';
         };
 
+        /**
+         * Gera as parcelas para a condição 'dinamico', com base em uma data inicial
+         * e um intervalo de 30 dias entre elas.
+         */
+        const gerarParcelasDinamico30dias = () => {
+            const qtdInput = document.getElementById('qtd_parcelas_dinamico');
+            const dataInput = document.getElementById('data_primeiro_vencimento_dinamico');
+            const tbody = document.getElementById('tabela_parcelas_dinamico_body');
+            const thead = document.getElementById('tabela_parcelas_dinamico_head');
+            const valorTotalInput = document.getElementById('conta_valor_total');
+
+            if (!qtdInput || !dataInput || !tbody || !thead || !valorTotalInput) return;
+
+            const qtd = parseInt(qtdInput.value, 10);
+            const data1Str = dataInput.value;
+            const valorTotal = parseFloat(valorTotalInput.value.replace(/\./g, '').replace(',', '.')) || 0;
+
+            tbody.innerHTML = ''; // Limpa as parcelas anteriores
+            thead.innerHTML = ''; // Limpa o cabeçalho
+
+            if (!data1Str || !qtd || qtd <= 0) {
+                validarSomaParcelas(); // Apenas atualiza a soma (que será zero)
+                return;
+            }
+
+            // Adiciona o cabeçalho da tabela de pré-visualização
+            thead.innerHTML = `<tr><th>Vencimento</th><th>Valor (R$)</th><th class="cell-center">Ação</th></tr>`;
+
+            const valorParcela = (valorTotal / qtd).toFixed(2);
+            let dataVencimento = new Date(data1Str + 'T12:00:00'); // Evita problemas de fuso horário
+
+            for (let i = 0; i < qtd; i++) {
+                if (i > 0) {
+                    // Adiciona 30 dias para as parcelas subsequentes
+                    dataVencimento.setDate(dataVencimento.getDate() + 30);
+                }
+
+                const dataFormatada = dataVencimento.toISOString().split('T')[0];
+                adicionarLinhaParcelaDinamico(dataFormatada, valorParcela.replace('.', ','));
+            }
+            validarSomaParcelas();
+        };
+
         const renderCamposPagamento = () => {
             const tipo = condicaoPagamentoSelect.value;
             camposPagamentoContainer.innerHTML = '';
@@ -649,9 +692,26 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div id="preview_parcelas_container"></div>`;
             } else if (tipo === 'dinamico') {
                 content = `
-                    <p style="font-size: 14px; color: var(--cor-texto-suave);">Adicione cada parcela manualmente. A soma dos valores deve ser igual ao total da nota.</p>
-                    <table class="data-table parcela-preview-table"><thead id="tabela_parcelas_dinamico_head"></thead><tbody id="tabela_parcelas_dinamico_body"></tbody></table>
-                    <button type="button" id="btn_add_parcela_dinamico" class="btn-secondary" style="margin-top: 16px;">+ Adicionar Parcela</button>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="qtd_parcelas_dinamico">Quantidade de Parcelas</label>
+                            <input type="number" id="qtd_parcelas_dinamico" value="1" min="1" class="gerador-parcela-dinamico">
+                        </div>
+                        <div class="form-group">
+                            <label for="data_primeiro_vencimento_dinamico">Data do 1º Vencimento</label>
+                            <input type="date" id="data_primeiro_vencimento_dinamico" class="gerador-parcela-dinamico" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="forma_pagto_padrao_dinamico">Forma de Pagamento</label>
+                            <select id="forma_pagto_padrao_dinamico" class="gerador-parcela-dinamico" required>${getFormasPagamentoOptions()}</select>
+                        </div>
+                    </div>
+                    <p style="font-size: 14px; color: var(--cor-texto-suave); margin-top: 16px;">Abaixo está a prévia das parcelas. Você pode ajustar as datas e valores individualmente. A soma deve ser igual ao total da nota.</p>
+                    <table class="data-table parcela-preview-table" style="margin-top: 16px;">
+                        <thead id="tabela_parcelas_dinamico_head"></thead>
+                        <tbody id="tabela_parcelas_dinamico_body"></tbody>
+                    </table>
+                    <button type="button" id="btn_add_parcela_dinamico" class="btn-secondary" style="margin-top: 16px;">+ Adicionar Parcela Manualmente</button>
                     <div id="preview_parcelas_container"></div>`;
             }
             camposPagamentoContainer.innerHTML = content + `
@@ -660,7 +720,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     <span id="soma_parcelas_display" style="font-weight: 700; font-size: 18px;">R$ 0,00</span>
                     <span id="status_soma_parcelas"></span>
                 </div>`;
-            if (tipo === 'vista') gerarParcelaUnica();
+
+            // Após injetar o HTML, configura a lógica específica para o tipo selecionado
+            if (tipo === 'vista') {
+                gerarParcelaUnica();
+            } else if (tipo === 'dinamico') {
+                // Preenche a data de hoje como padrão para o primeiro vencimento, se estiver vazio
+                const data1VencInput = document.getElementById('data_primeiro_vencimento_dinamico');
+                if (data1VencInput && !data1VencInput.value) {
+                    data1VencInput.valueAsDate = new Date();
+                }
+                // Adiciona os event listeners para os campos que geram as parcelas
+                document.querySelectorAll('.gerador-parcela-dinamico').forEach(el => {
+                    el.addEventListener('change', gerarParcelasDinamico30dias);
+                });
+                gerarParcelasDinamico30dias(); // Gera a prévia inicial
+            }
         };
 
         const gerarParcelaUnica = () => {
@@ -710,19 +785,19 @@ document.addEventListener('DOMContentLoaded', function() {
             validarSomaParcelas();
         };
 
-        const adicionarLinhaParcelaDinamico = () => {
+        const adicionarLinhaParcelaDinamico = (data = '', valor = '') => {
             const tbody = document.getElementById('tabela_parcelas_dinamico_body');
+
             if (tbody.children.length === 0) {
-                document.getElementById('tabela_parcelas_dinamico_head').innerHTML = `<tr><th>Vencimento</th><th>Valor (R$)</th><th>Forma de Pagamento</th><th class="cell-center">Ação</th></tr>`;
+                document.getElementById('tabela_parcelas_dinamico_head').innerHTML = `<tr><th>Vencimento</th><th>Valor (R$)</th><th class="cell-center">Ação</th></tr>`;
             }
             const numero = tbody.children.length + 1;
             const newRow = document.createElement('tr');
             newRow.className = 'parcela-row';
             newRow.dataset.numero = numero;
             newRow.innerHTML = `
-                <td><input type="date" class="parcela-vencimento" required></td>
-                <td><input type="text" class="parcela-valor-input input-moeda" placeholder="0,00" required></td>
-                <td><select class="parcela-forma" required>${getFormasPagamentoOptions()}</select></td>
+                <td><input type="date" class="parcela-vencimento" value="${data}" required></td>
+                <td><input type="text" class="parcela-valor-input input-moeda" value="${valor}" placeholder="0,00" required></td>
                 <td class="cell-center"><button type="button" class="action-icon btn-remover-parcela" title="Remover"><span class="material-symbols-outlined" style="color: var(--cor-perigo);">delete</span></button></td>
             `;
             tbody.appendChild(newRow);
@@ -761,8 +836,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         condicaoPagamentoSelect.addEventListener('change', renderCamposPagamento);
         valorTotalInput.addEventListener('input', () => {
-            if (condicaoPagamentoSelect.value === 'vista') gerarParcelaUnica();
-            else validarSomaParcelas();
+            const tipo = condicaoPagamentoSelect.value;
+            if (tipo === 'vista') {
+                gerarParcelaUnica();
+            } else if (tipo === 'dinamico') {
+                gerarParcelasDinamico30dias(); // Se o valor total muda, recalcula as parcelas
+            } else {
+                validarSomaParcelas(); // Para 'fixo', apenas revalida
+            }
         });
 
         camposPagamentoContainer.addEventListener('click', e => {
@@ -800,6 +881,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     forma_pagto_id: document.querySelector('#campos_pagamento_container .parcela-forma').value
                 });
             } else {
+                const formaPagtoDinamicoId = document.getElementById('forma_pagto_padrao_dinamico')?.value;
+
                 document.querySelectorAll('#campos_pagamento_container .parcela-row').forEach(row => {
                     let parcela = { numero_parcela: row.dataset.numero };
                     if (tipo === 'fixo') {
@@ -809,7 +892,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else { // dinâmico
                         parcela.valor_parcela = row.querySelector('.parcela-valor-input').value;
                         parcela.data_vencimento = row.querySelector('.parcela-vencimento').value;
-                        parcela.forma_pagto_id = row.querySelector('.parcela-forma').value;
+                        parcela.forma_pagto_id = formaPagtoDinamicoId;
                     }
                     dados.parcelas.push(parcela);
                 });
