@@ -1135,9 +1135,13 @@ def criar_fornecedor():
 
     dados = request.get_json()
     try:
+        # Lógica crucial: se o CNPJ vier como uma string vazia, converte para None.
+        # Isso evita erros de 'UNIQUE constraint' no banco de dados para múltiplos
+        # fornecedores sem CNPJ, já que o banco permite múltiplos NULLs, mas não múltiplas strings vazias.
+        cnpj_valor = dados.get('cnpj_cpf') or None
         novo_fornecedor = Fornecedor(
             nome=dados['nome'],
-            cnpj_cpf=dados.get('cnpj_cpf'),
+            cnpj_cpf=cnpj_valor,
             status=dados['status']
         )
         db.session.add(novo_fornecedor)
@@ -1380,8 +1384,11 @@ def editar_fornecedor(id):
     dados = request.get_json()
     try:
         item = Fornecedor.query.get_or_404(id)
+        # Aplica a mesma lógica de conversão da string vazia para None na edição.
+        cnpj_valor = dados.get('cnpj_cpf') or None
+
         item.nome = dados['nome']
-        item.cnpj_cpf = dados.get('cnpj_cpf')
+        item.cnpj_cpf = cnpj_valor
         item.status = dados['status']
         db.session.commit()
 
