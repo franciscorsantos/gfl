@@ -20,7 +20,7 @@
     <div class="content-header">
         <h3>Visão Geral</h3>
         {% if current_user.perfil == 'Admin' %}
-        <button class="btn-primary" onclick="abrirModal('modalNovoCartao')">+ Novo Cartão</button>
+        <button class="btn-primary" onclick="abrirModalNovoCartao()">+ Novo Cartão</button>
         {% endif %}
     </div>
 
@@ -29,7 +29,14 @@
             <div class="credit-card">
                 <div class="card-header">
                     <span class="card-name">{{ item.cartao.nome }}</span>
-                    <span class="material-symbols-outlined card-chip">memory</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        {% if current_user.perfil == 'Admin' %}
+                        <button type="button" class="btn-icon btn-editar-cartao" onclick="prepararEdicaoCartao({{ item.cartao.id }})" title="Editar Cartão" style="background: transparent; border: none; color: #a0aec0; cursor: pointer; display: flex; align-items: center; padding: 4px; border-radius: 4px; transition: color 0.2s;" onmouseover="this.style.color='#ffffff'" onmouseout="this.style.color='#a0aec0'">
+                            <span class="material-symbols-outlined" style="font-size: 20px;">edit</span>
+                        </button>
+                        {% endif %}
+                        <span class="material-symbols-outlined card-chip">memory</span>
+                    </div>
                 </div>
                 <div class="card-body">
                     <span class="card-label">Fatura Atual ({{ item.mes_fatura_atual }}/{{ item.ano_fatura_atual }})</span>
@@ -55,7 +62,7 @@
                 <span class="material-symbols-outlined" style="font-size: 48px;">credit_card_off</span>
                 <p>Nenhum cartão de crédito cadastrado.</p>
                 {% if current_user.perfil == 'Admin' %}
-                <button class="btn-primary" onclick="abrirModal('modalNovoCartao')">Cadastrar Primeiro Cartão</button>
+                <button class="btn-primary" onclick="abrirModalNovoCartao()">Cadastrar Primeiro Cartão</button>
                 {% endif %}
             </div>
         {% endfor %}
@@ -142,7 +149,7 @@
             </div>
             <div class="form-group">
                 <label for="filtro_periodo">Fatura (Mês/Ano)</label>
-                <select id="filtro_periodo" class="searchable-select" placeholder="Selecione um período">
+                <select id="filtro_periodo" class="searchable-select" data-sort="false" placeholder="Selecione um período">
                     <option value="">Selecione um período</option>
                     {% for mes in meses_filtro %}
                         <option value="{{ mes.valor }}">{{ mes.texto }}</option>

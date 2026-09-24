@@ -185,6 +185,41 @@ function prepararEdicaoUsuario(id) {
         .catch(err => console.error('Erro ao buscar dados do usuário:', err));
 }
 
+function abrirModalNovoCartao() {
+    const form = document.getElementById('formNovoCartao');
+    if (form) form.reset();
+    const idField = document.getElementById('cartao_id_edit');
+    if (idField) idField.value = '';
+    const titulo = document.getElementById('tituloModalCartao');
+    if (titulo) titulo.textContent = 'Novo Cartão de Crédito';
+    abrirModal('modalNovoCartao');
+}
+
+function prepararEdicaoCartao(id) {
+    fetch(`/api/cartoes/${id}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'erro') {
+                alert(data.mensagem);
+                return;
+            }
+            const form = document.getElementById('formNovoCartao');
+            if (form) form.reset();
+            
+            document.getElementById('cartao_id_edit').value = data.id;
+            document.getElementById('nome_cartao').value = data.nome;
+            document.getElementById('limite_cartao').value = data.limite;
+            document.getElementById('dia_fechamento_cartao').value = data.dia_fechamento;
+            document.getElementById('dia_vencimento_cartao').value = data.dia_vencimento;
+            
+            const titulo = document.getElementById('tituloModalCartao');
+            if (titulo) titulo.textContent = 'Editar Cartão de Crédito';
+            
+            abrirModal('modalNovoCartao');
+        })
+        .catch(err => console.error('Erro ao buscar dados do cartão:', err));
+}
+
 // Aguarda o documento HTML carregar completamente
 document.addEventListener('DOMContentLoaded', function() {
     
@@ -495,8 +530,12 @@ document.addEventListener('DOMContentLoaded', function() {
         formNovoCartao.addEventListener('submit', function(e) {
             e.preventDefault();
             const dados = Object.fromEntries(new FormData(formNovoCartao).entries());
-            fetch('/api/cartoes', {
-                method: 'POST',
+            const cartaoId = document.getElementById('cartao_id_edit').value;
+            const method = cartaoId ? 'PUT' : 'POST';
+            const url = cartaoId ? `/api/cartoes/${cartaoId}` : '/api/cartoes';
+
+            fetch(url, {
+                method: method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(dados)
             })
@@ -1052,10 +1091,15 @@ document.addEventListener('DOMContentLoaded', function() {
      * e os transforma em caixas de seleção pesquisáveis com Tom Select.
      */
     document.querySelectorAll('.searchable-select').forEach((el)=>{
-        new TomSelect(el,{
-            create: false, // Impede que o usuário crie novas opções
-            sortField: { field: "text", direction: "asc" } // Ordena os resultados da busca alfabeticamente
-        });
+        const options = {
+            create: false // Impede que o usuário crie novas opções
+        };
+        if (el.dataset.sort !== 'false') {
+            options.sortField = { field: "text", direction: "asc" };
+        } else {
+            options.sortField = [{ field: "$order" }];
+        }
+        new TomSelect(el, options);
     });
 
 });

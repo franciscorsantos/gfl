@@ -785,11 +785,12 @@ def cartoes():
     # Gera opções de Mês/Ano para o filtro de extrato
     meses_filtro = []
     data_base = date.today()
+    MESES_NOMES = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'}
     for i in range(-12, 2): # Gera de 12 meses atrás até 1 mês no futuro
         d = data_base + relativedelta(months=i)
-        meses_filtro.append({'valor': d.strftime('%Y-%m'), 'texto': d.strftime('%B/%Y').capitalize()})
+        meses_filtro.append({'valor': d.strftime('%Y-%m'), 'texto': f"{MESES_NOMES[d.month]}/{d.year}"})
 
-    return render_template('cartoes.html', cartoes_info=cartoes_info, meses_filtro=reversed(meses_filtro))
+    return render_template('cartoes.html', cartoes_info=cartoes_info, meses_filtro=list(reversed(meses_filtro)))
 
 @app.route('/usuarios')
 @login_required
@@ -826,6 +827,70 @@ def criar_cartao():
     except Exception as e:
         db.session.rollback()
         return jsonify({'status': 'erro', 'mensagem': str(e)}), 400
+
+@app.route('/api/cartoes/<int:id>', methods=['GET'])
+@login_required
+def get_cartao(id):
+    cartao = CartaoCredito.query.get_or_404(id)
+    return jsonify({
+        'id': cartao.id,
+        'nome': cartao.nome,
+        'limite': f"{cartao.limite:.2f}".replace('.', ','),
+        'dia_fechamento': cartao.dia_fechamento,
+        'dia_vencimento': cartao.dia_vencimento
+    })
+
+@app.route('/api/cartoes/<int:id>', methods=['PUT'])
+@login_required
+def editar_cartao(id):
+    if current_user.perfil != 'Admin':
+        return jsonify({'status': 'erro', 'mensagem': 'Acesso negado.'}), 403
+
+    dados = request.get_json()
+    try:
+        cartao = CartaoCredito.query.get_or_404(id)
+        cartao.nome = dados['nome']
+        cartao.limite = Decimal(dados['limite'].replace('.', '').replace(',', '.'))
+        cartao.dia_fechamento = int(dados['dia_fechamento'])
+        cartao.dia_vencimento = int(dados['dia_vencimento'])
+
+        db.session.commit()
+
+        detalhes = f"Editou o cartão de crédito '{cartao.nome}' (ID: {cartao.id})."
+        registrar_log('EDITAR', 'Cartões de Crédito', detalhes)
+        return jsonify({'status': 'sucesso', 'mensagem': 'Cartão atualizado com sucesso!'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'erro', 'mensagem': str(e)}), 400
+
+@app.route('/cartoes/editar/<int:id>', methods=['POST'])
+@login_required
+def editar_cartao_form(id):
+    if current_user.perfil != 'Admin':
+        flash('Acesso negado. Apenas administradores podem editar cartões.', 'danger')
+        return redirect(url_for('cartoes'))
+
+    cartao = CartaoCredito.query.get_or_404(id)
+
+    try:
+        nome = request.form.get('nome')
+        limite_raw = request.form.get('limite', '0')
+        limite_limpo = limite_raw.replace('.', '').replace(',', '.')
+        
+        cartao.nome = nome
+        cartao.limite = Decimal(limite_limpo)
+        cartao.dia_fechamento = int(request.form.get('dia_fechamento'))
+        cartao.dia_vencimento = int(request.form.get('dia_vencimento'))
+
+        db.session.commit()
+
+        registrar_log('EDITAR', 'Cartões de Crédito', f"Editou o cartão '{cartao.nome}' (ID: {cartao.id}).")
+        flash('Cartão de crédito atualizado com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao atualizar o cartão: {str(e)}', 'danger')
+
+    return redirect(url_for('cartoes'))
 
 @app.route('/api/despesas_cartao', methods=['POST'])
 @login_required
