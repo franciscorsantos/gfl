@@ -959,13 +959,100 @@ def get_fatura():
     paga = despesas[0].transacao_pagamento_id is not None if despesas else False
 
     despesas_json = [{
+        'id': d.id,
         'data_compra': d.data_compra.strftime('%d/%m/%Y'),
         'descricao': d.descricao,
         'parcela_info': f"{d.parcela_atual}/{d.numero_parcelas}",
-        'valor_parcela': f"{d.valor_parcela:.2f}".replace('.', ',')
+        'valor_parcela': f"{d.valor_parcela:.2f}".replace('.', ','),
+        'valor_total': f"{d.valor_total:.2f}".replace('.', ','),
+        'numero_parcelas': d.numero_parcelas,
+        'plano_conta_id': d.plano_conta_id,
+        'centro_custo_id': d.centro_custo_id,
+        'paga': d.transacao_pagamento_id is not None
     } for d in despesas]
 
     return jsonify({'status': 'sucesso', 'despesas': despesas_json, 'total_fatura': f"{total_fatura:.2f}".replace('.', ','), 'paga': paga})
+
+@app.route('/cartao/despesa/editar/<int:id>', methods=['POST'])
+@login_required
+def editar_despesa_cartao(id):
+    despesa_alvo = DespesaCartao.query.get_or_404(id)
+    cartao = CartaoCredito.query.get_or_404(despesa_alvo.cartao_id)
+
+    nova_descricao = request.form.get('descricao')
+    novo_valor_raw = request.form.get('valor_total', '0')
+    novo_valor_limpo = novo_valor_raw.replace('.', '').replace(',', '.')
+    novo_valor_total = Decimal(novo_valor_limpo)
+    nova_qtd_parcelas = int(request.form.get('numero_parcelas', 1))
+    novo_plano_id = request.form.get('plano_conta_id')
+    novo_centro_id = request.form.get('centro_custo_id')
+
+    parcelas_grupo = DespesaCartao.query.filter_by(
+        cartao_id=despesa_alvo.cartao_id,
+        data_compra=despesa_alvo.data_compra,
+        descricao=despesa_alvo.descricao,
+        valor_total=despesa_alvo.valor_total,
+        numero_parcelas=despesa_alvo.numero_parcelas
+    ).all()
+
+    if not parcelas_grupo:
+        parcelas_grupo = [despesa_alvo]
+
+    tem_parcela_paga = any(p.transacao_pagamento_id is not None for p in parcelas_grupo)
+    alterou_financeiro = (novo_valor_total != despesa_alvo.valor_total) or (nova_qtd_parcelas != despesa_alvo.numero_parcelas)
+
+    if tem_parcela_paga and alterou_financeiro:
+        flash('Atenção: Não é possível alterar o valor total ou número de parcelas de uma despesa que já possui parcelas pagas.', 'warning')
+        return redirect(url_for('cartoes'))
+
+    try:
+        if tem_parcela_paga:
+            for p in parcelas_grupo:
+                p.descricao = nova_descricao
+                if novo_plano_id: p.plano_conta_id = int(novo_plano_id)
+                if novo_centro_id: p.centro_custo_id = int(novo_centro_id)
+            db.session.commit()
+            registrar_log('EDITAR', 'Cartões de Crédito', f"Atualizou dados cadastrais da despesa '{nova_descricao}'.")
+            flash('Atenção: Apenas a descrição e categorias foram atualizadas. O valor total e o parcelamento foram mantidos por existirem faturas pagas.', 'warning')
+            return redirect(url_for('cartoes'))
+
+        for p in parcelas_grupo:
+            db.session.delete(p)
+
+        novo_valor_parcela = (novo_valor_total / Decimal(nova_qtd_parcelas)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        data_compra = despesa_alvo.data_compra
+        
+        if data_compra.day > cartao.dia_fechamento:
+            data_primeira_fatura = data_compra + relativedelta(months=1)
+        else:
+            data_primeira_fatura = data_compra
+
+        for i in range(nova_qtd_parcelas):
+            data_fatura_parcela = data_primeira_fatura + relativedelta(months=i)
+            nova_parcela = DespesaCartao(
+                descricao=nova_descricao,
+                valor_total=novo_valor_total,
+                data_compra=data_compra,
+                numero_parcelas=nova_qtd_parcelas,
+                valor_parcela=novo_valor_parcela,
+                parcela_atual=i + 1,
+                fatura_mes=data_fatura_parcela.month,
+                fatura_ano=data_fatura_parcela.year,
+                cartao_id=cartao.id,
+                plano_conta_id=int(novo_plano_id) if novo_plano_id else despesa_alvo.plano_conta_id,
+                centro_custo_id=int(novo_centro_id) if novo_centro_id else despesa_alvo.centro_custo_id
+            )
+            db.session.add(nova_parcela)
+
+        db.session.commit()
+        registrar_log('EDITAR', 'Cartões de Crédito', f"Re-parcelou despesa '{nova_descricao}' no valor de R$ {novo_valor_total:.2f} ({nova_qtd_parcelas}x).")
+        flash('Despesa do cartão de crédito alterada com sucesso!', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Atenção: Erro ao atualizar a despesa do cartão: {str(e)}', 'warning')
+
+    return redirect(url_for('cartoes'))
 
 @app.route('/api/portadores', methods=['POST'])
 @login_required

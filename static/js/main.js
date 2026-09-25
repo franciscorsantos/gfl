@@ -295,6 +295,40 @@ document.addEventListener('DOMContentLoaded', function() {
             prepararEdicaoUsuario(id);
             return;
         }
+
+        // Botão para editar despesa de cartão
+        const btnEditarDespesa = e.target.closest('.btn-editar-despesa-cartao');
+        if (btnEditarDespesa) {
+            const id = btnEditarDespesa.getAttribute('data-id');
+            const form = document.getElementById('formEditarDespesaCartao');
+            if (form) {
+                form.action = `/cartao/despesa/editar/${id}`;
+                document.getElementById('edit_despesa_id').value = id;
+                document.getElementById('edit_despesa_descricao').value = btnEditarDespesa.getAttribute('data-descricao') || '';
+                document.getElementById('edit_despesa_valor_total').value = btnEditarDespesa.getAttribute('data-valor-total') || '';
+                document.getElementById('edit_despesa_numero_parcelas').value = btnEditarDespesa.getAttribute('data-numero-parcelas') || '1';
+                document.getElementById('edit_despesa_plano_conta_id').value = btnEditarDespesa.getAttribute('data-plano-id') || '';
+                document.getElementById('edit_despesa_centro_custo_id').value = btnEditarDespesa.getAttribute('data-centro-id') || '';
+
+                const isPaga = btnEditarDespesa.getAttribute('data-paga') === 'true';
+                const avisoPaga = document.getElementById('aviso-despesa-paga');
+                const inputValor = document.getElementById('edit_despesa_valor_total');
+                const inputParcelas = document.getElementById('edit_despesa_numero_parcelas');
+
+                if (isPaga) {
+                    if (avisoPaga) avisoPaga.style.display = 'block';
+                    if (inputValor) inputValor.readOnly = true;
+                    if (inputParcelas) inputParcelas.readOnly = true;
+                } else {
+                    if (avisoPaga) avisoPaga.style.display = 'none';
+                    if (inputValor) inputValor.readOnly = false;
+                    if (inputParcelas) inputParcelas.readOnly = false;
+                }
+
+                abrirModal('modalEditarDespesaCartao');
+            }
+            return;
+        }
     });
 
     // DELETAR LANÇAMENTO
@@ -321,6 +355,7 @@ document.addEventListener('DOMContentLoaded', function() {
     inicializarMascaraMoeda(document.getElementById('valor')); 
     inicializarMascaraMoeda(document.getElementById('valor_total_despesa')); 
     inicializarMascaraMoeda(document.getElementById('valor_transferencia'));
+    inicializarMascaraMoeda(document.getElementById('edit_despesa_valor_total'));
 
     // ALTERAR STATUS DO LANÇAMENTO (Previsto/Realizado)
     const statusToggles = document.querySelectorAll('.status-toggle');
@@ -588,7 +623,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         corpoTabela.innerHTML = ''; 
 
                         if (data.despesas.length === 0) {
-                            corpoTabela.innerHTML = `<tr class="table-empty-state"><td colspan="4">Nenhuma despesa encontrada para esta fatura.</td></tr>`;
+                            corpoTabela.innerHTML = `<tr class="table-empty-state"><td colspan="5">Nenhuma despesa encontrada para esta fatura.</td></tr>`;
                         } else {
                             data.despesas.forEach(d => {
                                 corpoTabela.innerHTML += `
@@ -597,6 +632,20 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <td>${d.descricao}</td>
                                         <td class="cell-center">${d.parcela_info}</td>
                                         <td style="text-align: right;">R$ ${d.valor_parcela}</td>
+                                        <td class="cell-center">
+                                            <button type="button" class="btn-icon btn-editar-despesa-cartao" 
+                                                    data-id="${d.id}" 
+                                                    data-descricao="${d.descricao}" 
+                                                    data-valor-total="${d.valor_total}" 
+                                                    data-numero-parcelas="${d.numero_parcelas}" 
+                                                    data-plano-id="${d.plano_conta_id}" 
+                                                    data-centro-id="${d.centro_custo_id}" 
+                                                    data-paga="${d.paga}" 
+                                                    title="Editar Despesa" 
+                                                    style="background: transparent; border: none; color: var(--cor-texto-suave); cursor: pointer; padding: 2px;">
+                                                <span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
+                                            </button>
+                                        </td>
                                     </tr>`;
                             });
                         }

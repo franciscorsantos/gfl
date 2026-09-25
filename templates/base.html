@@ -109,6 +109,31 @@
 
             <!-- CONTEÚDO DINÂMICO DAS TELAS -->
             <section class="page-content">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="flash-messages-container" style="margin-bottom: 20px;">
+                            {% for category, message in messages %}
+                                {% if category == 'success' %}
+                                    <div class="alert-banner" style="background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 14px 18px; border-radius: 8px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; font-weight: 500;">
+                                        <span class="material-symbols-outlined" style="font-size: 22px; color: #28a745;">check_circle</span>
+                                        <span>{{ message }}</span>
+                                    </div>
+                                {% elif category == 'warning' %}
+                                    <div class="alert-banner" style="background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 14px 18px; border-radius: 8px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; font-weight: 500;">
+                                        <span class="material-symbols-outlined" style="font-size: 22px; color: #d97706;">warning</span>
+                                        <span>{{ message }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="alert-banner" style="background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 14px 18px; border-radius: 8px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; font-weight: 500;">
+                                        <span class="material-symbols-outlined" style="font-size: 22px; color: #dc3545;">error</span>
+                                        <span>{{ message }}</span>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+
                 {% block content %}
                 <!-- O Jinja2 injetará o código das outras telas aqui -->
                 {% endblock %}

@@ -184,6 +184,7 @@
                         <th>Descrição</th>
                         <th class="cell-center">Parcela</th>
                         <th style="text-align: right;">Valor (R$)</th>
+                        <th class="cell-center" style="width: 80px;">Ações</th>
                     </tr>
                 </thead>
                 <tbody id="corpo-tabela-fatura">
@@ -193,6 +194,7 @@
                     <tr style="background-color: var(--cor-secundaria); font-weight: bold;">
                         <td colspan="3" style="text-align: right; padding-right: 16px;">VALOR TOTAL DA FATURA</td>
                         <td id="total-fatura" style="text-align: right; padding: 16px;">R$ 0,00</td>
+                        <td></td>
                     </tr>
                 </tfoot>
             </table>
@@ -230,5 +232,6 @@
 <!-- Inclusão dos Modais -->
 {% include 'components/modal_cartao_credito.html' %}
 {% include 'components/modal_pagar_fatura.html' %}
+{% include 'components/modal_editar_despesa_cartao.html' %}
 
 {% endblock %}
