@@ -526,7 +526,103 @@ def gestao_contas_a_pagar():
 
         conta.progresso_pagas = parcelas_pagas
         conta.progresso_total = total_parcelas
+        conta.is_fatura_cartao = False
         contas_info.append(conta)
+
+    # --- INCLUSÃO DAS FATURAS DE CARTÃO DE CRÉDITO ---
+    if not fornecedor_id_str:
+        import calendar
+        faturas_agrupadas = db.session.query(
+            CartaoCredito.id.label('cartao_id'),
+            CartaoCredito.nome.label('cartao_nome'),
+            CartaoCredito.dia_vencimento.label('dia_vencimento'),
+            DespesaCartao.fatura_ano,
+            DespesaCartao.fatura_mes,
+            func.sum(DespesaCartao.valor_parcela).label('valor_total'),
+            func.count(DespesaCartao.id).label('total_itens'),
+            func.count(DespesaCartao.transacao_pagamento_id).label('itens_pagos')
+        ).join(CartaoCredito, DespesaCartao.cartao_id == CartaoCredito.id)\
+         .group_by(
+            CartaoCredito.id,
+            CartaoCredito.nome,
+            CartaoCredito.dia_vencimento,
+            DespesaCartao.fatura_ano,
+            DespesaCartao.fatura_mes
+         ).all()
+
+        for f in faturas_agrupadas:
+            ultimo_dia_mes = calendar.monthrange(f.fatura_ano, f.fatura_mes)[1]
+            dia_venc = min(f.dia_vencimento, ultimo_dia_mes)
+            data_venc_fatura = date(f.fatura_ano, f.fatura_mes, dia_venc)
+
+            fatura_paga = (f.total_itens > 0 and f.itens_pagos >= f.total_itens)
+            proximo_venc = None if fatura_paga else data_venc_fatura
+            descricao_fatura = f"Fatura Cartão {f.cartao_nome} ({f.fatura_mes:02d}/{f.fatura_ano})"
+
+            # Aplica filtro de busca textual
+            if busca_str:
+                termo = busca_str.lower()
+                if (termo not in f.cartao_nome.lower() and
+                    termo not in descricao_fatura.lower() and
+                    termo not in "cartão de crédito" and
+                    termo not in "cartao de credito"):
+                    continue
+
+            # Aplica filtro de Mês/Ano (baseado no vencimento da fatura)
+            if mes_ano_str:
+                try:
+                    ano_f, mes_f = map(int, mes_ano_str.split('-'))
+                    if not proximo_venc or proximo_venc.year != ano_f or proximo_venc.month != mes_f:
+                        continue
+                except (ValueError, TypeError):
+                    pass
+
+            # Aplica filtro de Status
+            if status_filtro == 'pendentes':
+                if fatura_paga or data_venc_fatura < hoje:
+                    continue
+            elif status_filtro == 'atrasadas':
+                if fatura_paga or data_venc_fatura >= hoje:
+                    continue
+            elif status_filtro == 'pagas':
+                if not fatura_paga:
+                    continue
+
+            status_dinamico = 'Pago' if fatura_paga else ('Atrasado' if data_venc_fatura < hoje else 'Pendente')
+            periodo_str = f"{f.fatura_ano}-{f.fatura_mes:02d}"
+
+            fatura_obj = {
+                'id': f"cartao-{f.cartao_id}-{periodo_str}",
+                'is_fatura_cartao': True,
+                'cartao_id': f.cartao_id,
+                'periodo_fatura': periodo_str,
+                'fornecedor': {'nome': f"Cartão de Crédito: {f.cartao_nome}"},
+                'descricao': f"Fatura {f.fatura_mes:02d}/{f.fatura_ano} ({f.total_itens} {'lançamento' if f.total_itens == 1 else 'lançamentos'})",
+                'tipo_documento': 'Fatura de Cartão',
+                'numero_documento': f"{f.fatura_mes:02d}/{f.fatura_ano}",
+                'proximo_vencimento': proximo_venc,
+                'valor_total': f.valor_total,
+                'progresso_pagas': 1 if fatura_paga else 0,
+                'progresso_total': 1,
+                'parcelas': [{
+                    'id': f"fatura-{f.cartao_id}-{periodo_str}",
+                    'numero_parcela': 1,
+                    'data_vencimento': data_venc_fatura,
+                    'valor_parcela': f.valor_total,
+                    'forma_pagamento': {'nome': 'Cartão de Crédito'},
+                    'status': 'Pago' if fatura_paga else 'Pendente',
+                    'status_dinamico': status_dinamico,
+                    'is_fatura_cartao': True,
+                    'cartao_id': f.cartao_id,
+                    'periodo_fatura': periodo_str
+                }]
+            }
+            contas_info.append(fatura_obj)
+
+    # Ordena todas as contas e faturas pelo próximo vencimento ascendente
+    contas_info.sort(
+        key=lambda item: (item['proximo_vencimento'] if isinstance(item, dict) else item.proximo_vencimento) or date(9999, 12, 31)
+    )
 
     # Gera opções de Mês/Ano para o filtro
     meses_filtro = []
@@ -660,6 +756,12 @@ def extrato():
         
         resultados = transacoes_filtradas
 
+    # Busca os objetos de filtro selecionados para exibição no relatório
+    portador_selecionado = Portador.query.get(int(portador_id)) if portador_id and portador_id.isdigit() else None
+    plano_selecionado = PlanoConta.query.get(int(plano_conta_id)) if plano_conta_id and plano_conta_id.isdigit() else None
+    centro_selecionado = CentroCusto.query.get(int(centro_custo_id)) if centro_custo_id and centro_custo_id.isdigit() else None
+    data_emissao = datetime.now()
+
     return render_template('extrato.html',
                            visao=visao,
                            resultados=resultados,
@@ -668,7 +770,11 @@ def extrato():
                            resultado_periodo=resultado_periodo,
                            data_inicio=data_inicio,
                            data_fim=data_fim,
-                           ignorar_transferencias=ignorar_transferencias)
+                           ignorar_transferencias=ignorar_transferencias,
+                           portador_selecionado=portador_selecionado,
+                           plano_selecionado=plano_selecionado,
+                           centro_selecionado=centro_selecionado,
+                           data_emissao=data_emissao)
 
 @app.route('/extrato/exportar_csv')
 @login_required
@@ -783,14 +889,24 @@ def cartoes():
         })
 
     # Gera opções de Mês/Ano para o filtro de extrato
-    meses_filtro = []
-    data_base = date.today()
+    meses_dict = {}
+    data_base = date.today().replace(day=1)
     MESES_NOMES = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'}
-    for i in range(-12, 2): # Gera de 12 meses atrás até 1 mês no futuro
+    for i in range(-12, 13): # Gera de 12 meses atrás até 12 meses no futuro
         d = data_base + relativedelta(months=i)
-        meses_filtro.append({'valor': d.strftime('%Y-%m'), 'texto': f"{MESES_NOMES[d.month]}/{d.year}"})
+        chave = d.strftime('%Y-%m')
+        meses_dict[chave] = {'valor': chave, 'texto': f"{MESES_NOMES[d.month]}/{d.year}"}
 
-    return render_template('cartoes.html', cartoes_info=cartoes_info, meses_filtro=list(reversed(meses_filtro)))
+    # Garante que todos os meses que possuem faturas lançadas apareçam no filtro
+    periodos_banco = db.session.query(DespesaCartao.fatura_ano, DespesaCartao.fatura_mes).distinct().all()
+    for ano_b, mes_b in periodos_banco:
+        chave = f"{ano_b}-{mes_b:02d}"
+        if chave not in meses_dict and 1 <= mes_b <= 12:
+            meses_dict[chave] = {'valor': chave, 'texto': f"{MESES_NOMES[mes_b]}/{ano_b}"}
+
+    meses_filtro = [meses_dict[k] for k in sorted(meses_dict.keys(), reverse=True)]
+
+    return render_template('cartoes.html', cartoes_info=cartoes_info, meses_filtro=meses_filtro)
 
 @app.route('/usuarios')
 @login_required
@@ -1937,4 +2053,3 @@ if __name__ == '__main__':
     # Roda o servidor em modo debug para facilitar o desenvolvimento
     app.run(debug=True)
     
-    #Teste

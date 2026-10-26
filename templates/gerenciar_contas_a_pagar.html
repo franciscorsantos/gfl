@@ -74,6 +74,9 @@
             <tr class="conta-principal-row" data-target-details="detalhes-conta-{{ conta.id }}">
                 <td class="cell-center"><span class="material-symbols-outlined expand-icon">chevron_right</span></td>
                 <td>
+                    {% if conta.is_fatura_cartao %}
+                        <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: text-bottom; color: var(--cor-primaria); margin-right: 4px;">credit_card</span>
+                    {% endif %}
                     <strong>{{ conta.fornecedor.nome }}</strong><br>
                     <span class="text-suave">{{ conta.descricao }}</span>
                 </td>
@@ -96,7 +99,16 @@
                 </td>
                 <td style="text-align: right; font-weight: 600;">R$ {{ "%.2f"|format(conta.valor_total) }}</td>
                 <td class="cell-center">
-                    <span class="badge" style="background-color: var(--cor-texto-suave);">{{ conta.progresso_pagas }} / {{ conta.progresso_total }} pagas</span>
+                    {% if conta.is_fatura_cartao and conta.progresso_pagas == 0 %}
+                        <a href="{{ url_for('cartoes', aba='extrato', cartao_id=conta.cartao_id, periodo=conta.periodo_fatura) }}" 
+                           class="btn-pagar-parcela btn-sm" 
+                           style="text-decoration: none; display: inline-block;"
+                           onclick="event.stopPropagation();">
+                            Pagar
+                        </a>
+                    {% else %}
+                        <span class="badge" style="background-color: var(--cor-texto-suave);">{{ conta.progresso_pagas }} / {{ conta.progresso_total }} pagas</span>
+                    {% endif %}
                 </td>
             </tr>
             <tr class="detalhes-parcelas-row" id="detalhes-conta-{{ conta.id }}">
@@ -131,12 +143,20 @@
                                     </td>
                                     <td class="cell-center">
                                         {% if p.status != 'Pago' %}
-                                        <button class="btn-pagar-parcela btn-sm" 
-                                                data-parcela-id="{{ p.id }}" 
-                                                data-parcela-valor="{{ '%.2f'|format(p.valor_parcela) }}"
-                                                data-parcela-desc="Parcela {{p.numero_parcela}} de {{conta.descricao}}">
-                                            Pagar
-                                        </button>
+                                            {% if p.is_fatura_cartao %}
+                                            <a href="{{ url_for('cartoes', aba='extrato', cartao_id=p.cartao_id, periodo=p.periodo_fatura) }}" 
+                                               class="btn-pagar-parcela btn-sm" 
+                                               style="text-decoration: none; display: inline-block;">
+                                                Pagar
+                                            </a>
+                                            {% else %}
+                                            <button class="btn-pagar-parcela btn-sm" 
+                                                    data-parcela-id="{{ p.id }}" 
+                                                    data-parcela-valor="{{ '%.2f'|format(p.valor_parcela) }}"
+                                                    data-parcela-desc="Parcela {{p.numero_parcela}} de {{conta.descricao}}">
+                                                Pagar
+                                            </button>
+                                            {% endif %}
                                         {% else %}
                                         -
                                         {% endif %}

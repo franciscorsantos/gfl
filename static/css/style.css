@@ -702,52 +702,230 @@ input:not([type="radio"]):not([type="checkbox"]), select, .btn-primary, .btn-sec
     .modal-content { width: 95vw; max-width: 95vw; border-radius: 8px; }
 }
 
+/* --- ESTILOS DO RELATÓRIO DO EXTRATO DINÂMICO & IMPRESSÃO --- */
+
+.print-document-header {
+    display: none;
+    margin-bottom: 24px;
+    padding: 20px;
+    background-color: var(--cor-fundo-card);
+    border: 1px solid var(--cor-borda);
+    border-radius: 12px;
+}
+
+.print-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 2px solid var(--cor-borda);
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+}
+
+.company-brand h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--cor-texto);
+    margin: 0;
+    letter-spacing: 0.5px;
+}
+
+.company-brand p {
+    font-size: 12px;
+    color: var(--cor-texto-suave);
+    margin: 2px 0 0 0;
+}
+
+.report-title-box {
+    text-align: right;
+}
+
+.report-title-box h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--cor-primaria);
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.report-subtitle {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--cor-texto-suave);
+}
+
+.filter-metadata-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px 20px;
+    background-color: var(--cor-fundo);
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--cor-borda);
+}
+
+.meta-item {
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.meta-label {
+    font-weight: 600;
+    color: var(--cor-texto-suave);
+    margin-right: 4px;
+}
+
+.meta-value {
+    color: var(--cor-texto);
+    font-weight: 500;
+}
+
+/* --- BLOCO DE SALDOS TOTAIS DO PERÍODO (FINAL DO RELATÓRIO) --- */
+.report-summary-footer {
+    margin-top: 24px;
+    background-color: var(--cor-fundo-card);
+    border: 1px solid var(--cor-borda);
+    border-radius: 12px;
+    padding: 20px;
+    page-break-inside: avoid;
+}
+
+.summary-footer-header {
+    border-bottom: 1px solid var(--cor-borda);
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+}
+
+.summary-footer-header h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--cor-texto);
+    text-transform: uppercase;
+}
+
+.summary-footer-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.footer-card {
+    background-color: var(--cor-fundo);
+    border: 1px solid var(--cor-borda);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.footer-card .card-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--cor-texto-suave);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.footer-card .card-amount {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.footer-card.card-entradas { border-left: 4px solid var(--cor-sucesso); }
+.footer-card.card-saidas { border-left: 4px solid var(--cor-perigo); }
+.footer-card.card-resultado { border-left: 4px solid var(--cor-primaria); }
+
+/* --- REGRAS DE IMPRESSÃO (`@media print`) --- */
 @media print {
+    @page {
+        size: A4 portrait;
+        margin: 12mm 10mm 12mm 10mm;
+    }
+
+    /* Exibe o cabeçalho impresso */
+    .print-document-header {
+        display: block !important;
+        border: 1px solid #cbd5e0 !important;
+        padding: 14px 18px !important;
+        margin-bottom: 16px !important;
+        background-color: #ffffff !important;
+    }
+
+    .report-summary-footer {
+        display: block !important;
+        page-break-inside: avoid !important;
+        border: 1px solid #cbd5e0 !important;
+        margin-top: 20px !important;
+        padding: 14px 18px !important;
+        background-color: #f8fafc !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .footer-card {
+        background-color: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        padding: 10px 14px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .footer-card .card-amount {
+        font-size: 16pt !important;
+    }
+
     /* Oculta elementos de navegação e filtros */
-    .no-print {
+    .no-print, .top-header, .sidebar, .sidebar-overlay, .hamburger-btn {
         display: none !important;
     }
 
-    /* Reseta o layout para aproveitar a página */
+    /* Reseta layout para impressão em A4 */
     body, .page-content {
-        padding: 0;
-        margin: 0;
-        background-color: #FFF !important;
-        font-size: 10pt;
-        color: #000 !important;
-    }
-    .layout-container {
-        display: block;
-    }
-    .main-content {
-        margin: 0;
-        flex: none;
-        width: 100%;
-    }
-    .report-container, .report-container-single-table {
-        margin: 0;
-        width: 100%;
+        padding: 0 !important;
+        margin: 0 !important;
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        font-size: 10pt !important;
     }
 
-    /* Remove adornos visuais para economizar tinta */
-    .report-container, .data-table, .dashboard-header, .report-container-single-table {
-        border: none !important;
-        box-shadow: none !important;
-        border-radius: 0 !important;
-    }
-    .nested-table-group .vehicle-header-row th, .nested-table-group .total-row, .text-danger, .total-value-highlight, .text-success {
-        background-color: transparent !important;
-        color: #000 !important;
-    }
-    .data-table th, .data-table td {
-        padding: 6px 8px; /* Reduz o padding das células */
+    .layout-container { display: block !important; }
+    .main-content { margin: 0 !important; width: 100% !important; }
+    .report-container, .report-container-single-table { margin: 0 !important; width: 100% !important; border: none !important; }
+
+    /* Estilização da Tabela de Dados na Impressão */
+    .data-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        font-size: 9.5pt !important;
+        border: 1px solid #cbd5e0 !important;
     }
 
-    /* Evita quebra de página dentro de linhas ou grupos */
+    .data-table th {
+        background-color: #edf2f7 !important;
+        color: #1a202c !important;
+        font-weight: 700 !important;
+        border-bottom: 2px solid #cbd5e0 !important;
+        padding: 6px 10px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .data-table td {
+        padding: 6px 10px !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        color: #2d3748 !important;
+    }
+
+    .data-table tr:nth-child(even) td {
+        background-color: #f8fafc !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
     .nested-table-group, tr {
-        page-break-inside: avoid;
-    }
-    .dashboard-header {
-        padding: 10px 0;
+        page-break-inside: avoid !important;
     }
 }

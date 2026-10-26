@@ -4,11 +4,38 @@
 <div class="dashboard-header no-print" style="justify-content: space-between; align-items: center; background-color: var(--cor-fundo-card); border: 1px solid var(--cor-borda); margin-bottom: 24px;">
     <div>
         <h2>Extrato Dinâmico e Relatórios</h2>
-        <p style="color: var(--cor-texto-suave);">Analise suas movimentações com diferentes visões.</p>
+        <p style="color: var(--cor-texto-suave);">Analise suas movimentações com diferentes visões e imprima relatórios formais.</p>
     </div>
 </div>
 
-<!-- Formulário de Filtro -->
+<!-- Cabeçalho Formal do Relatório para Impressão -->
+<div class="print-document-header">
+    <div class="print-header-top">
+        <div class="company-brand">
+            <h2>MELIÁ TRANSPORTES</h2>
+            <p>Gestão Financeira Logística - ERP GFL</p>
+        </div>
+        <div class="report-title-box">
+            <h3>RELATÓRIO DE EXTRATO DINÂMICO</h3>
+            <span class="report-subtitle">
+                {% if visao == 'resumo_categorias' %}Visão: Resumo por Categoria
+                {% elif visao == 'resumo_centros' %}Visão: Resumo por Centro de Custo
+                {% elif visao == 'frota_detalhado' %}Visão: Análise de Frota (Detalhado)
+                {% else %}Visão: Cronológica{% endif %}
+            </span>
+        </div>
+    </div>
+    <div class="filter-metadata-grid">
+        <div class="meta-item"><span class="meta-label">Período:</span> <span class="meta-value">{{ data_inicio.strftime('%d/%m/%Y') }} a {{ data_fim.strftime('%d/%m/%Y') }}</span></div>
+        <div class="meta-item"><span class="meta-label">Conta:</span> <span class="meta-value">{{ portador_selecionado.nome if portador_selecionado else 'Todas as contas' }}</span></div>
+        <div class="meta-item"><span class="meta-label">Categoria:</span> <span class="meta-value">{{ plano_selecionado.nome if plano_selecionado else 'Todas as categorias' }}</span></div>
+        <div class="meta-item"><span class="meta-label">Centro de Custo:</span> <span class="meta-value">{{ centro_selecionado.nome if centro_selecionado else 'Todos os centros' }}</span></div>
+        <div class="meta-item"><span class="meta-label">Data de Emissão:</span> <span class="meta-value">{{ data_emissao.strftime('%d/%m/%Y às %H:%M') }}</span></div>
+        <div class="meta-item"><span class="meta-label">Emitido por:</span> <span class="meta-value">{{ current_user.nome }}</span></div>
+    </div>
+</div>
+
+<!-- Formulário de Filtro (Oculto na Impressão) -->
 <form method="get" action="{{ url_for('extrato') }}" id="form-extrato" class="filter-form no-print" style="background-color: var(--cor-fundo-card); padding: 20px; border-radius: 12px; margin-bottom: 24px;">
     <div class="form-row">
         <div class="form-group">
@@ -56,26 +83,19 @@
         <div class="form-group" style="display: flex; align-items: flex-end; gap: 8px;">
             <button type="submit" class="btn-primary">Gerar Relatório</button>
             <button type="button" id="btn-exportar-csv" class="btn-secondary">Exportar CSV</button>
-            <button type="button" onclick="window.print()" class="btn-secondary" title="Imprimir Relatório">
-                <span class="material-symbols-outlined" style="vertical-align: middle;">print</span>
+            <button type="button" onclick="window.print()" class="btn-primary" style="background-color: var(--cor-primaria); color: #fff;" title="Imprimir Relatório">
+                <span class="material-symbols-outlined" style="background-color: var(--cor-primaria); color: #fff; vertical-align: middle; margin-right: 4px;">print</span>
+                Imprimir Documento
             </button>
         </div>
     </div>
-    <div class="form-group" style="align-items: center; flex-direction: row;">
+    <div class="form-group" style="align-items: center; flex-direction: row; margin-top: 12px;">
         <input type="checkbox" name="ignorar_transferencias" id="ignorar_transferencias" value="true" {% if ignorar_transferencias %}checked{% endif %}>
         <label for="ignorar_transferencias" style="margin-bottom: 0;">Ocultar transferências entre contas</label>
     </div>
-    
 </form>
 
-<!-- Totais do Período -->
-<div class="summary-grid no-print" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
-    <div class="summary-card"><div class="card-title">Total Entradas</div><div class="card-value text-success">R$ {{ total_entradas | br_currency }}</div></div>
-    <div class="summary-card"><div class="card-title">Total Saídas</div><div class="card-value text-danger">R$ {{ total_saidas | br_currency }}</div></div>
-    <div class="summary-card"><div class="card-title">Resultado do Período</div><div class="card-value {% if resultado_periodo < 0 %}text-danger{% endif %}">R$ {{ resultado_periodo | br_currency }}</div></div>
-</div>
-
-<!-- Container dos Resultados -->
+<!-- Container dos Resultados da Tabela -->
 <div class="report-container">
     {% if visao == 'resumo_categorias' or visao == 'resumo_centros' %}
     <div style="background-color: var(--cor-fundo-card); border-radius: 12px; border: 1px solid var(--cor-borda); overflow: hidden;">
@@ -171,5 +191,28 @@
         </table>
     </div>
     {% endif %}
+</div>
+
+<!-- SALDOS TOTAIS AO FINAL DO RELATÓRIO (IMPRESSÃO E TELA) -->
+<div class="report-summary-footer">
+    <div class="summary-footer-header">
+        <h4>SALDOS TOTAIS DO PERÍODO</h4>
+    </div>
+    <div class="summary-footer-grid">
+        <div class="footer-card card-entradas">
+            <span class="card-label">TOTAL DE ENTRADAS</span>
+            <span class="card-amount text-success">R$ {{ total_entradas | br_currency }}</span>
+        </div>
+        <div class="footer-card card-saidas">
+            <span class="card-label">TOTAL DE SAÍDAS</span>
+            <span class="card-amount text-danger">- R$ {{ total_saidas | br_currency }}</span>
+        </div>
+        <div class="footer-card card-resultado {% if resultado_periodo < 0 %}negative{% else %}positive{% endif %}">
+            <span class="card-label">SALDO TOTAL DO PERÍODO</span>
+            <span class="card-amount {% if resultado_periodo < 0 %}text-danger{% else %}text-success{% endif %}">
+                R$ {{ resultado_periodo | br_currency }}
+            </span>
+        </div>
+    </div>
 </div>
 {% endblock %}

@@ -1151,4 +1151,37 @@ document.addEventListener('DOMContentLoaded', function() {
         new TomSelect(el, options);
     });
 
+    // ===================================================================
+    // REDIRECIONAMENTO AUTOMÁTICO PARA ABA DE FATURAS DE CARTÃO
+    // ===================================================================
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('aba') === 'extrato') {
+        const btnAbaExtrato = document.querySelector('button[onclick*="aba-extrato"]');
+        if (btnAbaExtrato) {
+            abrirAba({ currentTarget: btnAbaExtrato }, 'aba-extrato');
+        }
+        const cartaoIdParam = urlParams.get('cartao_id');
+        const periodoParam = urlParams.get('periodo');
+        const selectCartao = document.getElementById('filtro_cartao_id');
+        const selectPeriodo = document.getElementById('filtro_periodo');
+
+        if (selectCartao && cartaoIdParam) {
+            if (selectCartao.tomselect) {
+                selectCartao.tomselect.setValue(cartaoIdParam, true);
+            } else {
+                selectCartao.value = cartaoIdParam;
+            }
+        }
+        if (selectPeriodo && periodoParam) {
+            if (selectPeriodo.tomselect) {
+                selectPeriodo.tomselect.setValue(periodoParam, true);
+            } else {
+                selectPeriodo.value = periodoParam;
+            }
+        }
+        if (cartaoIdParam && periodoParam && btnBuscarFatura) {
+            btnBuscarFatura.click();
+        }
+    }
+
 });
