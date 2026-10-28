@@ -305,6 +305,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 form.action = `/cartao/despesa/editar/${id}`;
                 document.getElementById('edit_despesa_id').value = id;
                 document.getElementById('edit_despesa_descricao').value = btnEditarDespesa.getAttribute('data-descricao') || '';
+                document.getElementById('edit_despesa_data_compra').value = btnEditarDespesa.getAttribute('data-data-compra') || '';
                 document.getElementById('edit_despesa_valor_total').value = btnEditarDespesa.getAttribute('data-valor-total') || '';
                 document.getElementById('edit_despesa_numero_parcelas').value = btnEditarDespesa.getAttribute('data-numero-parcelas') || '1';
                 document.getElementById('edit_despesa_plano_conta_id').value = btnEditarDespesa.getAttribute('data-plano-id') || '';
@@ -312,15 +313,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const isPaga = btnEditarDespesa.getAttribute('data-paga') === 'true';
                 const avisoPaga = document.getElementById('aviso-despesa-paga');
+                const inputDataCompra = document.getElementById('edit_despesa_data_compra');
                 const inputValor = document.getElementById('edit_despesa_valor_total');
                 const inputParcelas = document.getElementById('edit_despesa_numero_parcelas');
 
                 if (isPaga) {
                     if (avisoPaga) avisoPaga.style.display = 'block';
+                    if (inputDataCompra) inputDataCompra.readOnly = true;
                     if (inputValor) inputValor.readOnly = true;
                     if (inputParcelas) inputParcelas.readOnly = true;
                 } else {
                     if (avisoPaga) avisoPaga.style.display = 'none';
+                    if (inputDataCompra) inputDataCompra.readOnly = false;
                     if (inputValor) inputValor.readOnly = false;
                     if (inputParcelas) inputParcelas.readOnly = false;
                 }
@@ -636,6 +640,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                             <button type="button" class="btn-icon btn-editar-despesa-cartao" 
                                                     data-id="${d.id}" 
                                                     data-descricao="${d.descricao}" 
+                                                    data-data-compra="${d.data_compra_iso}" 
                                                     data-valor-total="${d.valor_total}" 
                                                     data-numero-parcelas="${d.numero_parcelas}" 
                                                     data-plano-id="${d.plano_conta_id}" 

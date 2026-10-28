@@ -845,8 +845,8 @@ def extrato_exportar_csv():
 # --- FUNÇÃO AUXILIAR PARA CÁLCULO DE FATURA ---
 def get_fatura_atual_periodo(dia_fechamento):
     hoje = date.today()
-    # Se o dia de hoje for maior que o dia do fechamento, a fatura atual é a do próximo mês
-    if hoje.day > dia_fechamento:
+    # Se o dia de hoje for maior ou igual ao dia do fechamento, a fatura atual é a do próximo mês
+    if hoje.day >= dia_fechamento:
         proximo_mes = hoje + relativedelta(months=1)
         return proximo_mes.month, proximo_mes.year
     # Senão, a fatura atual ainda é a do mês corrente
@@ -1024,8 +1024,8 @@ def criar_despesa_cartao():
         if not centro_custo_id or not dados.get('plano_conta_id'):
              return jsonify({'status': 'erro', 'mensagem': 'Os campos Plano de Contas e Centro de Custo são obrigatórios.'}), 400
 
-        # Lógica para determinar a data da primeira fatura
-        if data_compra.day > cartao.dia_fechamento:
+        # Lógica para determinar a data da primeira fatura (no dia do fechamento ou após, vai para a fatura seguinte)
+        if data_compra.day >= cartao.dia_fechamento:
             data_primeira_fatura = data_compra + relativedelta(months=1)
         else:
             data_primeira_fatura = data_compra
@@ -1077,6 +1077,7 @@ def get_fatura():
     despesas_json = [{
         'id': d.id,
         'data_compra': d.data_compra.strftime('%d/%m/%Y'),
+        'data_compra_iso': d.data_compra.strftime('%Y-%m-%d'),
         'descricao': d.descricao,
         'parcela_info': f"{d.parcela_atual}/{d.numero_parcelas}",
         'valor_parcela': f"{d.valor_parcela:.2f}".replace('.', ','),
@@ -1096,6 +1097,8 @@ def editar_despesa_cartao(id):
     cartao = CartaoCredito.query.get_or_404(despesa_alvo.cartao_id)
 
     nova_descricao = request.form.get('descricao')
+    nova_data_compra_str = request.form.get('data_compra')
+    nova_data_compra = datetime.strptime(nova_data_compra_str, '%Y-%m-%d').date() if nova_data_compra_str else despesa_alvo.data_compra
     novo_valor_raw = request.form.get('valor_total', '0')
     novo_valor_limpo = novo_valor_raw.replace('.', '').replace(',', '.')
     novo_valor_total = Decimal(novo_valor_limpo)
@@ -1115,10 +1118,14 @@ def editar_despesa_cartao(id):
         parcelas_grupo = [despesa_alvo]
 
     tem_parcela_paga = any(p.transacao_pagamento_id is not None for p in parcelas_grupo)
-    alterou_financeiro = (novo_valor_total != despesa_alvo.valor_total) or (nova_qtd_parcelas != despesa_alvo.numero_parcelas)
+    alterou_financeiro = (
+        (novo_valor_total != despesa_alvo.valor_total) or
+        (nova_qtd_parcelas != despesa_alvo.numero_parcelas) or
+        (nova_data_compra != despesa_alvo.data_compra)
+    )
 
     if tem_parcela_paga and alterou_financeiro:
-        flash('Atenção: Não é possível alterar o valor total ou número de parcelas de uma despesa que já possui parcelas pagas.', 'warning')
+        flash('Atenção: Não é possível alterar a data da compra, o valor total ou o número de parcelas de uma despesa que já possui parcelas pagas.', 'warning')
         return redirect(url_for('cartoes'))
 
     try:
@@ -1129,16 +1136,17 @@ def editar_despesa_cartao(id):
                 if novo_centro_id: p.centro_custo_id = int(novo_centro_id)
             db.session.commit()
             registrar_log('EDITAR', 'Cartões de Crédito', f"Atualizou dados cadastrais da despesa '{nova_descricao}'.")
-            flash('Atenção: Apenas a descrição e categorias foram atualizadas. O valor total e o parcelamento foram mantidos por existirem faturas pagas.', 'warning')
+            flash('Atenção: Apenas a descrição e categorias foram atualizadas. A data da compra, o valor total e o parcelamento foram mantidos por existirem faturas pagas.', 'warning')
             return redirect(url_for('cartoes'))
 
         for p in parcelas_grupo:
             db.session.delete(p)
 
         novo_valor_parcela = (novo_valor_total / Decimal(nova_qtd_parcelas)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-        data_compra = despesa_alvo.data_compra
+        data_compra = nova_data_compra
         
-        if data_compra.day > cartao.dia_fechamento:
+        # Se a compra for feita no dia do fechamento ou após, vai para a fatura seguinte
+        if data_compra.day >= cartao.dia_fechamento:
             data_primeira_fatura = data_compra + relativedelta(months=1)
         else:
             data_primeira_fatura = data_compra
