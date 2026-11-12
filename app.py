@@ -1025,12 +1025,12 @@ def criar_despesa_cartao():
              return jsonify({'status': 'erro', 'mensagem': 'Os campos Plano de Contas e Centro de Custo são obrigatórios.'}), 400
 
         # Lógica para determinar a data da primeira fatura:
-        # - Antes do fechamento: cai na fatura do mês seguinte (+1 mês)
-        # - No dia do fechamento ou após: cai na fatura de 2 meses à frente (+2 meses)
+        # - Antes do fechamento: cai na fatura do mês da compra
+        # - No dia do fechamento ou após: cai na fatura do mês seguinte (+1 mês)
         if data_compra.day >= cartao.dia_fechamento:
-            data_primeira_fatura = data_compra + relativedelta(months=2)
-        else:
             data_primeira_fatura = data_compra + relativedelta(months=1)
+        else:
+            data_primeira_fatura = data_compra
 
         # Cria um registro de despesa para cada parcela
         for i in range(numero_parcelas):
@@ -1148,12 +1148,12 @@ def editar_despesa_cartao(id):
         data_compra = nova_data_compra
         
         # Lógica para determinar a data da primeira fatura:
-        # - Antes do fechamento: cai na fatura do mês seguinte (+1 mês)
-        # - No dia do fechamento ou após: cai na fatura de 2 meses à frente (+2 meses)
+        # - Antes do fechamento: cai na fatura do mês da compra
+        # - No dia do fechamento ou após: cai na fatura do mês seguinte (+1 mês)
         if data_compra.day >= cartao.dia_fechamento:
-            data_primeira_fatura = data_compra + relativedelta(months=2)
-        else:
             data_primeira_fatura = data_compra + relativedelta(months=1)
+        else:
+            data_primeira_fatura = data_compra
 
         for i in range(nova_qtd_parcelas):
             data_fatura_parcela = data_primeira_fatura + relativedelta(months=i)
