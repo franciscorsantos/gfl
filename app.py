@@ -843,15 +843,22 @@ def extrato_exportar_csv():
     return Response(output, mimetype="text/csv", headers={"Content-disposition": f"attachment; filename=extrato_{visao}_{date.today().strftime('%Y-%m-%d')}.csv"})
 
 # --- FUNÇÃO AUXILIAR PARA CÁLCULO DE FATURA ---
-def get_fatura_atual_periodo(dia_fechamento):
-    hoje = date.today()
-    # Se o dia de hoje for maior ou igual ao dia do fechamento, a fatura atual é a do próximo mês
-    if hoje.day >= dia_fechamento:
-        proximo_mes = hoje + relativedelta(months=1)
-        return proximo_mes.month, proximo_mes.year
-    # Senão, a fatura atual ainda é a do mês corrente
-    else:
-        return hoje.month, hoje.year
+def calcular_data_primeira_fatura(data_base, dia_fechamento, dia_vencimento):
+    """
+    Determina a data base (mês/ano de vencimento) da primeira fatura de uma compra:
+    - Se a compra foi antes do dia de fechamento, a fatura fecha no próprio mês da compra (meses_apos_fechamento = 0).
+    - Se a compra foi no dia do fechamento ou após, a fatura só fecha no mês seguinte (meses_apos_fechamento = 1).
+    - Se o dia de vencimento for menor ou igual ao dia de fechamento (ex: fecha dia 24 e vence dia 1),
+      o vencimento da fatura ocorre no mês seguinte ao fechamento (+1 mês adicional).
+    """
+    meses_adicionais = 1 if data_base.day >= dia_fechamento else 0
+    if dia_vencimento <= dia_fechamento:
+        meses_adicionais += 1
+    return data_base + relativedelta(months=meses_adicionais)
+
+def get_fatura_atual_periodo(dia_fechamento, dia_vencimento):
+    data_fatura = calcular_data_primeira_fatura(date.today(), dia_fechamento, dia_vencimento)
+    return data_fatura.month, data_fatura.year
 
 @app.route('/cartoes')
 @login_required
@@ -861,7 +868,7 @@ def cartoes():
 
     for cartao in todos_cartoes:
         # 1. Calcula o período da fatura que está aberta no momento
-        mes_fatura, ano_fatura = get_fatura_atual_periodo(cartao.dia_fechamento)
+        mes_fatura, ano_fatura = get_fatura_atual_periodo(cartao.dia_fechamento, cartao.dia_vencimento)
 
         # 2. Soma o valor das parcelas que compõem a fatura atual
         total_fatura_atual = db.session.query(func.sum(DespesaCartao.valor_parcela))\
@@ -1024,13 +1031,8 @@ def criar_despesa_cartao():
         if not centro_custo_id or not dados.get('plano_conta_id'):
              return jsonify({'status': 'erro', 'mensagem': 'Os campos Plano de Contas e Centro de Custo são obrigatórios.'}), 400
 
-        # Lógica para determinar a data da primeira fatura:
-        # - Antes do fechamento: cai na fatura do mês da compra
-        # - No dia do fechamento ou após: cai na fatura do mês seguinte (+1 mês)
-        if data_compra.day >= cartao.dia_fechamento:
-            data_primeira_fatura = data_compra + relativedelta(months=1)
-        else:
-            data_primeira_fatura = data_compra
+        # Lógica para determinar a data da primeira fatura (considerando fechamento e vencimento)
+        data_primeira_fatura = calcular_data_primeira_fatura(data_compra, cartao.dia_fechamento, cartao.dia_vencimento)
 
         # Cria um registro de despesa para cada parcela
         for i in range(numero_parcelas):
@@ -1147,13 +1149,8 @@ def editar_despesa_cartao(id):
         novo_valor_parcela = (novo_valor_total / Decimal(nova_qtd_parcelas)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
         data_compra = nova_data_compra
         
-        # Lógica para determinar a data da primeira fatura:
-        # - Antes do fechamento: cai na fatura do mês da compra
-        # - No dia do fechamento ou após: cai na fatura do mês seguinte (+1 mês)
-        if data_compra.day >= cartao.dia_fechamento:
-            data_primeira_fatura = data_compra + relativedelta(months=1)
-        else:
-            data_primeira_fatura = data_compra
+        # Lógica para determinar a data da primeira fatura (considerando fechamento e vencimento)
+        data_primeira_fatura = calcular_data_primeira_fatura(data_compra, cartao.dia_fechamento, cartao.dia_vencimento)
 
         for i in range(nova_qtd_parcelas):
             data_fatura_parcela = data_primeira_fatura + relativedelta(months=i)
