@@ -539,8 +539,20 @@ def gestao_contas_a_pagar():
             DespesaCartao.fatura_ano,
             DespesaCartao.fatura_mes,
             func.sum(DespesaCartao.valor_parcela).label('valor_total'),
+            func.sum(
+                case(
+                    (DespesaCartao.transacao_pagamento_id == None, DespesaCartao.valor_parcela),
+                    else_=Decimal('0.0')
+                )
+            ).label('valor_pendente'),
             func.count(DespesaCartao.id).label('total_itens'),
-            func.count(DespesaCartao.transacao_pagamento_id).label('itens_pagos')
+            func.count(DespesaCartao.transacao_pagamento_id).label('itens_pagos'),
+            func.sum(
+                case(
+                    ((DespesaCartao.transacao_pagamento_id == None) & (DespesaCartao.valor_parcela > 0), 1),
+                    else_=0
+                )
+            ).label('itens_pendentes_positivos')
         ).join(CartaoCredito, DespesaCartao.cartao_id == CartaoCredito.id)\
          .group_by(
             CartaoCredito.id,
@@ -555,7 +567,11 @@ def gestao_contas_a_pagar():
             dia_venc = min(f.dia_vencimento, ultimo_dia_mes)
             data_venc_fatura = date(f.fatura_ano, f.fatura_mes, dia_venc)
 
-            fatura_paga = (f.total_itens > 0 and f.itens_pagos >= f.total_itens)
+            itens_pendentes_pos = f.itens_pendentes_positivos or 0
+            # A fatura é considerada paga se não houver nenhum item pendente com valor > 0
+            # (e tiver ao menos um item pago ou todos os itens zerados)
+            fatura_paga = (f.total_itens > 0 and itens_pendentes_pos == 0)
+            valor_exibicao = f.valor_total if fatura_paga else (f.valor_pendente or Decimal('0.0'))
             proximo_venc = None if fatura_paga else data_venc_fatura
             descricao_fatura = f"Fatura Cartão {f.cartao_nome} ({f.fatura_mes:02d}/{f.fatura_ano})"
 
@@ -601,14 +617,14 @@ def gestao_contas_a_pagar():
                 'tipo_documento': 'Fatura de Cartão',
                 'numero_documento': f"{f.fatura_mes:02d}/{f.fatura_ano}",
                 'proximo_vencimento': proximo_venc,
-                'valor_total': f.valor_total,
+                'valor_total': valor_exibicao,
                 'progresso_pagas': 1 if fatura_paga else 0,
                 'progresso_total': 1,
                 'parcelas': [{
                     'id': f"fatura-{f.cartao_id}-{periodo_str}",
                     'numero_parcela': 1,
                     'data_vencimento': data_venc_fatura,
-                    'valor_parcela': f.valor_total,
+                    'valor_parcela': valor_exibicao,
                     'forma_pagamento': {'nome': 'Cartão de Crédito'},
                     'status': 'Pago' if fatura_paga else 'Pendente',
                     'status_dinamico': status_dinamico,
@@ -1076,7 +1092,9 @@ def get_fatura():
 
     despesas = DespesaCartao.query.filter_by(cartao_id=cartao_id, fatura_mes=mes, fatura_ano=ano).order_by(DespesaCartao.data_compra.asc()).all()
     total_fatura = sum(d.valor_parcela for d in despesas)
-    paga = despesas[0].transacao_pagamento_id is not None if despesas else False
+    total_pendente = sum(d.valor_parcela for d in despesas if d.transacao_pagamento_id is None and d.valor_parcela > 0)
+    # A fatura só é considerada totalmente paga se existir ao menos uma despesa e não houver nenhum item pendente com valor > 0
+    paga = (len(despesas) > 0 and total_pendente == 0)
 
     despesas_json = [{
         'id': d.id,
@@ -1092,7 +1110,13 @@ def get_fatura():
         'paga': d.transacao_pagamento_id is not None
     } for d in despesas]
 
-    return jsonify({'status': 'sucesso', 'despesas': despesas_json, 'total_fatura': f"{total_fatura:.2f}".replace('.', ','), 'paga': paga})
+    return jsonify({
+        'status': 'sucesso',
+        'despesas': despesas_json,
+        'total_fatura': f"{total_fatura:.2f}".replace('.', ','),
+        'total_pendente': f"{total_pendente:.2f}".replace('.', ','),
+        'paga': paga
+    })
 
 @app.route('/cartao/despesa/editar/<int:id>', methods=['POST'])
 @login_required
@@ -1815,8 +1839,11 @@ def pagar_fatura():
                  return jsonify({'status': 'erro', 'mensagem': 'Nenhuma Forma de Pagamento encontrada no sistema.'}), 500
 
         total_pago = Decimal('0.0')
+        itens_quitados = 0
         # --- INÍCIO DA NOVA LÓGICA DE DESMEMBRAMENTO ---
         for despesa in despesas_fatura:
+            if despesa.valor_parcela <= 0:
+                continue
             # Para cada item da fatura, cria uma transação de saída individual
             transacao_pagamento = Transacao(
                 tipo='Despesa',
@@ -1836,10 +1863,11 @@ def pagar_fatura():
             # Vincula a despesa do cartão à sua transação de pagamento correspondente
             despesa.transacao_pagamento_id = transacao_pagamento.id
             total_pago += despesa.valor_parcela
+            itens_quitados += 1
         
         db.session.commit()
 
-        detalhes = f"Pagou a fatura do cartão '{cartao.nome}' (período {mes:02d}/{ano}) no valor de R$ {total_pago:.2f}, gerando {len(despesas_fatura)} lançamentos individuais."
+        detalhes = f"Pagou a fatura do cartão '{cartao.nome}' (período {mes:02d}/{ano}) no valor de R$ {total_pago:.2f}, gerando {itens_quitados} lançamentos individuais."
         registrar_log('PAGAR', 'Cartões de Crédito', detalhes)
         return jsonify({'status': 'sucesso', 'mensagem': 'Fatura paga com sucesso! Os lançamentos foram desmembrados no extrato.'})
     except Exception as e:

@@ -659,6 +659,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                         const btnPagar = document.getElementById('abrir-modal-pagar-fatura');
                         const statusPaga = document.getElementById('status-fatura-paga');
+                        btnPagar.dataset.valorPendente = data.total_pendente ? `R$ ${data.total_pendente}` : `R$ ${data.total_fatura}`;
                         btnPagar.style.display = data.paga || data.despesas.length === 0 ? 'none' : 'flex';
                         statusPaga.style.display = data.paga ? 'flex' : 'none';
                     }
@@ -669,7 +670,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const abrirModalPagarFaturaBtn = document.getElementById('abrir-modal-pagar-fatura');
     if (abrirModalPagarFaturaBtn) {
         abrirModalPagarFaturaBtn.addEventListener('click', function() {
-            const total = document.getElementById('total-fatura').textContent;
+            const total = this.dataset.valorPendente || document.getElementById('total-fatura').textContent;
             document.getElementById('valor-fatura-pagamento').textContent = total;
 
             // Adicionado para preencher a data atual no campo de data do pagamento
